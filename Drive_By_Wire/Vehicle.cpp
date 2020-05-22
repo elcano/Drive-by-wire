@@ -1,7 +1,7 @@
 #include "Settings.h"
 #include "Vehicle.h"
 #include <mcp_can.h>
-#include <Can_Protocol.h>
+#include "Can_Protocol.h"
 #ifndef TESTING
 #include <Arduino.h>
 #include <PinChangeInterrupt.h>
