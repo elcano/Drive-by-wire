@@ -27,7 +27,7 @@
 #define RELAYInversion      false
 
 //Wheel click interrupt (digitally high or low, referred to as an "odometer") and motor hall phases.
-#define IRPT_WHEEL 			A8
+#define IRPT_WHEEL 			    A8
 #define IRPT_PHASE_A        A15
 #define IRPT_PHASE_B        A14
 #define IRPT_PHASE_C        A12

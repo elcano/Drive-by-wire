@@ -1,6 +1,6 @@
 #pragma once
 
-
+#define CARLA true
 #define DEBUG true
 #define USE_PIDS false
 //Currently can be 3 or 1
@@ -55,6 +55,22 @@ const uint32_t MaxHi_ms = 800;
 Settings for the Steering 
 Minimum/Maximum and center turning signals
 */
+
+#if CARLA
+#define MIN_TURN_Mdegrees -24000
+#define MAX_TURN_Mdegrees 25000
+#define MIN_Right_Sensor 725 //not used
+#define MAX_Right_Sensor 785 //not used
+#define MIN_Left_Sensor 485 //not used
+#define MAX_Left_Sensor 313 //not used
+#define Left_Read_at_MIN_TURN  532
+#define Left_Read_at_MAX_TURN 206
+#define Right_Read_at_MIN_TURN 106
+#define Right_Read_at_MAX_TURN 532
+#define MIN_TURN_MS 1000
+#define MAX_TURN_MS 1850
+
+#else
 #define MIN_TURN_Mdegrees -24000
 #define MAX_TURN_Mdegrees 25000
 #define MIN_Right_Sensor 725
@@ -67,7 +83,7 @@ Minimum/Maximum and center turning signals
 #define Right_Read_at_MAX_TURN 785
 #define MIN_TURN_MS 1000
 #define MAX_TURN_MS 1850
-
+#endif
 
 
 
