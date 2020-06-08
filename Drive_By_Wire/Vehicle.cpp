@@ -1,7 +1,7 @@
 #include "Settings.h"
 #include "Vehicle.h"
 #include <mcp_can.h>
-#include <Can_Protocol.h>
+#include "Can_Protocol.h"
 #ifndef TESTING
 #include <Arduino.h>
 #include <PinChangeInterrupt.h>
@@ -138,15 +138,23 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
 		  if (DEBUG) 
 			  Serial.println("RECEIVED CAN MESSAGE FROM HIGH LEVEL WITH ID: " + String(canId, HEX));
 
-      int low_result = (unsigned int)(buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | (buf[0]);
+      // SPEED IN mm/s
+      int low_result = (unsigned int)((buf[0] << 8) | buf[1]);
      
       desired_speed_mmPs = low_result;
+
+      // BRAKE ON/OFF
+      int mid_result = (unsigned int)((buf[2] << 8) | buf[3]);
+      if (mid_result > 0) brake.Stop();
+      else brake.Release();
 		 
-      int high_result = (unsigned int)(buf[7] << 24) | (buf[6] << 16) | (buf[5] << 8) | (buf[4]);
+     // WHEEL ANGLE
+      int high_result = (unsigned int)((buf[4] << 8) | buf[5]);
+      desired_angle= map(high_result,-1800,1800,-90000,90000); //map to larger range for steering
       
-      desired_angle= map(high_result,-90,90,-90000,90000); //map to larger range for steering
 		  if(DEBUG){
         Serial.print("CAN Speed: " + String(low_result, DEC));
+        Serial.print(", CAN Brake: " + String(mid_result, DEC));
         Serial.print(",  CAN Angle: ");
         Serial.println(high_result, DEC);
         Serial.println("mapped angle: " + String(desired_angle));
