@@ -1,8 +1,13 @@
-
+/* Drive_By_Wire
+ *  Accept commands over CAN bus
+ *  Implement vehicle throttle, brakes and steering as commanded
+ *  Report status over CAN bus
+ */
+#include "DBW_Pins.h"
 #include <SPI.h>
-#include "Settings.h"
 #include "Vehicle.h"
 #include "mcp_can.h"
+#define baud 115200   // baudrate for debugging with a host PC over USB serial
 
 Vehicle *myTrike;
 

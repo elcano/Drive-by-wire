@@ -1,4 +1,4 @@
-#include "Settings.h"
+#include "DBW_Pins.h"
 #include "ThrottleController.h"
 #ifndef Testing
 #include <Arduino.h>
@@ -16,7 +16,7 @@ ThrottleController::ThrottleController() :
 	speedPID.SetOutputLimits(MIN_ACC_OUT, MAX_ACC_OUT);
 	speedPID.SetSampleTime(PID_CALCULATE_TIME);
 	speedPID.SetMode(AUTOMATIC);
-	pinMode(DAC_SS, OUTPUT);
+	pinMode(DAC_SS_PIN, OUTPUT);
 	SPI.setDataMode(SPI_MODE0);
 	SPI.setBitOrder(MSBFIRST);
 	SPI.begin();
@@ -93,7 +93,7 @@ void ThrottleController::write(int32_t address, int32_t value) {
 	if (address < 2)
   {
     // take the SS pin low to select the chip:
-    digitalWrite(DAC_SS, LOW);
+    digitalWrite(DAC_SS_PIN, LOW);
     if (address >= 0)
     {
       if (address == 1)
@@ -102,12 +102,12 @@ void ThrottleController::write(int32_t address, int32_t value) {
       SPI.transfer(byte2);
     }
     // take the SS pin high to de-select the chip:
-    digitalWrite(DAC_SS, HIGH);
+    digitalWrite(DAC_SS_PIN, HIGH);
   }
   else
   {
     // take the SS pin low to select the chip:
-    digitalWrite(DAC_SS, LOW);
+    digitalWrite(DAC_SS_PIN, LOW);
     if (address <= 3)
     {
       if (address == 3)
@@ -116,7 +116,7 @@ void ThrottleController::write(int32_t address, int32_t value) {
       SPI.transfer(byte2);
     }
     // take the SS pin high to de-select the chip:
-    digitalWrite(DAC_SS, HIGH);
+    digitalWrite(DAC_SS_PIN, HIGH);
   }
 	
 }
@@ -156,8 +156,8 @@ void ThrottleController::engageThrottle(int32_t input) {
       Serial.println("MAPPED speed: " + String(input));
       
 	if (input != currentThrottlePWM) {
-		noInterrupts();
     Serial.println(temp);
+    noInterrupts();
 		write(DAC_CHANNEL, input);
 		currentThrottlePWM = input;  // Remember most recent throttle PWM value.
 		interrupts();
