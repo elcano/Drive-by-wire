@@ -1,3 +1,4 @@
+#include "DBW_Pins.h"
 #include "Settings.h"
 #include "SteeringController.h"
 #ifndef TESTING
@@ -9,13 +10,13 @@ SteeringController::SteeringController():
 	steerPID(&steerAngleUS, &PIDSteeringOutput_us, &desiredTurn_us, proportional_steering, integral_steering, derivative_steering, DIRECT)
 {
 	//Hacky fix for not burning servo circuit
-  pinMode(STEER_ON, OUTPUT);
+  pinMode(STEER_ON_PIN, OUTPUT);
 
   steerPID.SetOutputLimits(MIN_TURN_MS, MAX_TURN_MS);
   steerPID.SetSampleTime(PID_CALCULATE_TIME);
   steerPID.SetMode(AUTOMATIC);
 
-  Steer_Servo.attach(STEER_OUT_PIN);
+  Steer_Servo.attach(STEER_PULSE_PIN);
   delay(1);
   Steer_Servo.write(90);
 	if(DEBUG){
@@ -70,7 +71,7 @@ void SteeringController::engageSteering(int32_t input) {
 }
 
 int32_t SteeringController::computeAngleLeft() {
-	int32_t val = analogRead(AngleSensorLeft);
+	int32_t val = analogRead(L_SENSE_PIN);
 	val = map(val, Left_Read_at_MIN_TURN, Left_Read_at_MAX_TURN, MIN_TURN_MS, MAX_TURN_MS);
   /*if(DEBUG){
     Serial.print("Left sensor: ");
@@ -80,7 +81,7 @@ int32_t SteeringController::computeAngleLeft() {
 }
 
 int32_t SteeringController::computeAngleRight() {
-	int32_t val = analogRead(AngleSensorRight);
+	int32_t val = analogRead(R_SENSE_PIN);
 	val = map(val, Right_Read_at_MIN_TURN, Right_Read_at_MAX_TURN, MIN_TURN_MS, MAX_TURN_MS);
 /* if(DEBUG){
  Serial.print("Right sensor: ");

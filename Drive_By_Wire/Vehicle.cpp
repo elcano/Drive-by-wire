@@ -1,4 +1,4 @@
-#include "Settings.h"
+#include "DBW_Pins.h"
 #include "Vehicle.h"
 #include <mcp_can.h>
 #include "Can_Protocol.h"
@@ -12,7 +12,7 @@ volatile int32_t Vehicle::desired_angle;
 
 Brakes Vehicle::brake;
 ThrottleController Vehicle::throttle;
-MCP_CAN CAN(CAN_SS); // pin for CS on Mega
+MCP_CAN CAN(CAN_SS_PIN); // pin for CS on Mega
 
 /****************************************************************************
  * Constructor
@@ -31,8 +31,8 @@ Vehicle::Vehicle(){
   if(DEBUG)
 		Serial.println("CAN BUS init ok!");
 
-	 //attachPCINT(digitalPinToPCINT(IRPT_ESTOP), eStop, RISING);
-   //attachPCINT(digitalPinToPCINT(IRPT_CAN), recieveCan, RISING);
+	 //attachPCINT(digitalPinToPCINT(IRPT_ESTOP_PIN), eStop, RISING);
+   //attachPCINT(digitalPinToPCINT(IRPT_CAN_PIN), recieveCan, RISING);
 }
 
 /*****************************************************************************

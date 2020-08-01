@@ -1,22 +1,12 @@
+/*
+ * Settings.h is meant to capture characteristics of a particular vehicle.
+ * There shoould be no Settings.h file in the GitHub repository.
+ * The file in the repository should be SettingsTemplate.h
+ * Modify this example file to match your individual vehicle.
+ * Do not check your local Settings.h into the repository.
+ */
+
 #pragma once
-
-#define CARLA true
-#define DEBUG true
-#define USE_PIDS false
-//Currently can be 3 or 1
-#define LLBversion 3
-
-#ifndef TESTING
-#include <Arduino.h>
-#endif
-
-#if LLBversion == 3
-#include "LLBv3_settings.h"
-#else
-#include "LLBv1_settings.h"
-#endif
-
-
 
 /*
 Minimum and maximum values to send to the motor
@@ -37,19 +27,8 @@ const int32_t MAX_SPEED_mmPs = MAX_SPEED_KmPh*KmPh_mmPs;  //at 20KMPH this is ro
 //set as 1% of the maximum speed -> 0.2 KmPh
 const int32_t MIN_SPEED_mmPs = 0.01*MAX_SPEED_mmPs;
 
-
-
-/*
-Time that the brakes can be high
-*/
-
-//not currently in use??
-#define MIN_BRAKE_OUT 128
-#define MAX_BRAKE_OUT 254
-//time brakes are allowed to be high
+/* Time that the brakes can be high */
 const uint32_t MaxHi_ms = 800;
-
-
 
 /*
 Settings for the Steering 
@@ -85,8 +64,6 @@ Minimum/Maximum and center turning signals
 #define MAX_TURN_MS 1850
 #endif
 
-
-
 /*
 Vehicle Data
 Wheel Diameter, Turn Radius
@@ -95,13 +72,6 @@ Wheel Diameter, Turn Radius
 #define WHEEL_DIAMETER_MM 495.3
 //derived settings
 const int32_t WHEEL_CIRCUM_MM = (WHEEL_DIAMETER_MM * PI);
-
-//needs to be measured, I just picked a number it makes no sense
-
-//should be measured from the midpoint between the front wheel axles and the rear axle
-#define VEHICLE_LENGTH_MM 5
-
-#define DISTANCE_BETWEEN_WHEELS_MM 3
 
 /*
 PID tunning for steering and throttle
@@ -118,14 +88,3 @@ const double derivative_throttle = .00001;
 const double proportional_steering = .0175;
 const double integral_steering = .5;
 const double derivative_steering = .00001;
-
-
-
-/*
-Min is all the way turned to the left
-*/
-
-#define MIN_Right_Sensor 725
-#define MAX_Right_Sensor 785
-#define MIN_Left_Sensor 485
-#define MAX_Left_Sensor 313

@@ -1,3 +1,4 @@
+#include "DBW_Pins.h"
 #include "Settings.h"
 #include "Brakes.h"
 #ifndef TESTING
