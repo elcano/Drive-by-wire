@@ -2,9 +2,11 @@
 #include "ThrottleController.h"
 #ifndef Testing
 #include <Arduino.h>
-#include <PinChangeInterrupt.h>
-
-#endif
+#ifdef __AVR_ATmega2560__
+// Only for Arduino Mega
+#include <PinChangeInterrupt.h> 
+#endif  // Mega
+#endif  // Testing
 
 volatile uint32_t ThrottleController::tickTime_ms[2];
 
@@ -16,19 +18,24 @@ ThrottleController::ThrottleController() :
 	speedPID.SetOutputLimits(MIN_ACC_OUT, MAX_ACC_OUT);
 	speedPID.SetSampleTime(PID_CALCULATE_TIME);
 	speedPID.SetMode(AUTOMATIC);
+  calcTime_ms[0] = 0;
+  calcTime_ms[1] = 0;
+  prevSpeed_mmPs = 0;
+
+#ifdef __AVR_ATmega2560__
+// Only for Arduino Mega
 	pinMode(DAC_SS_PIN, OUTPUT);
 	SPI.setDataMode(SPI_MODE0);
 	SPI.setBitOrder(MSBFIRST);
 	SPI.begin();
 
-	calcTime_ms[0] = 0;
-	calcTime_ms[1] = 0;
-	prevSpeed_mmPs = 0;
 	if (IRPT_WHEEL != 3)
 		attachPCINT(digitalPinToPCINT(IRPT_WHEEL), tick, RISING);
 	else
 		attachInterrupt(digitalPinToInterrupt(IRPT_WHEEL), tick, RISING);//pin 3 on Mega
-
+#else
+    attachInterrupt(IRPT_WHEEL, tick, RISING);
+#endif  // Mega
   if(DEBUG)
     Serial.println("Throttle Setup Complete");
 
@@ -86,8 +93,10 @@ int32_t ThrottleController::update(int32_t dSpeed) {
 
 //Private functions
 
-
 void ThrottleController::write(int32_t address, int32_t value) {
+  
+#ifdef __AVR_ATmega2560__
+// Only for Arduino Mega
   int byte1 = ((value & 0xF0) >> 4) | 0x10; // acitve mode, bits D7-D4
   int byte2 = (value & 0x0F) << 4;  
 	if (address < 2)
@@ -118,7 +127,15 @@ void ThrottleController::write(int32_t address, int32_t value) {
     // take the SS pin high to de-select the chip:
     digitalWrite(DAC_SS_PIN, HIGH);
   }
-	
+#else  // Arduino Due
+
+  // Addresss should be 0
+  // value is 0 to 4095.
+  if (address != 1)
+     analogWrite(DAC0, value);
+  else
+     analogWrite(DAC1, value);
+#endif
 }
 
 
