@@ -4,23 +4,27 @@
 #include "Can_Protocol.h"
 #ifndef TESTING
 #include <Arduino.h>
+#ifdef __AVR_ATmega2560__
+// Only for Arduino Mega
 #include <PinChangeInterrupt.h>
-#endif
+#endif  // Mega
+#endif  // Testing
 
 volatile int32_t Vehicle::desired_speed_mmPs;
 volatile int32_t Vehicle::desired_angle;
 
 Brakes Vehicle::brake;
 ThrottleController Vehicle::throttle;
+#ifdef __AVR_ATmega2560__
 MCP_CAN CAN(CAN_SS_PIN); // pin for CS on Mega
-
+#endif
 /****************************************************************************
  * Constructor
  ****************************************************************************/
 Vehicle::Vehicle(){
   desired_angle = 0;
 	desired_speed_mmPs = 0;
-	
+#ifdef __AVR_ATmega2560__
   while (CAN_OK != CAN.begin(CAN_500KBPS))
   {
 	  if (DEBUG) {
@@ -30,7 +34,9 @@ Vehicle::Vehicle(){
   }
   if(DEBUG)
 		Serial.println("CAN BUS init ok!");
-
+#else
+    // TODO 8/14/20: Put in code for Due
+#endif  // Mega
 	 //attachPCINT(digitalPinToPCINT(IRPT_ESTOP_PIN), eStop, RISING);
    //attachPCINT(digitalPinToPCINT(IRPT_CAN_PIN), recieveCan, RISING);
 }
@@ -91,7 +97,11 @@ void Vehicle::update() {
     speedAngleMessage MSG;
     MSG.sspeed = currentSpeed;  
     MSG.angle =  map(currentAngle,-90000,90000,-90,90);
+#ifdef __AVR_ATmega2560__
     CAN.sendMsgBuf(Actual_CANID, 0,8, (uint8_t*)&MSG);
+#else
+    // TODO 8/14/20: Put in code for Due
+#endif  // Mega
     delay(1000);
   
     if(DEBUG)
@@ -130,14 +140,20 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
 	noInterrupts();
 	unsigned char len = 0;
   unsigned char buf[8];
-
+  unsigned int canId = 0;
+#ifdef __AVR_ATmega2560__
   if (CAN_MSGAVAIL == CAN.checkReceive()){  //found new instructions
     CAN.readMsgBuf(&len, buf);    // read data,  len: data length, buf: data buf
-    unsigned int canId = CAN.getCanId();
+    canId = CAN.getCanId();
+ #else
+    // TODO 8/14/20: Put in code for Due
+    {
+ #endif  // Mega
+    interrupts();
     if (canId == HiDrive_CANID) { // the drive ID receive from high level 
-		  if (DEBUG) 
+		  if (DEBUG) {
 			  Serial.println("RECEIVED CAN MESSAGE FROM HIGH LEVEL WITH ID: " + String(canId, HEX));
-
+		  }
       // SPEED IN mm/s
       int low_result = (unsigned int)((buf[0] << 8) | buf[1]);
      
@@ -151,22 +167,21 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
      // WHEEL ANGLE
       int high_result = (unsigned int)((buf[4] << 8) | buf[5]);
       desired_angle= map(high_result,-1800,1800,-90000,90000); //map to larger range for steering
-      
-		  if(DEBUG){
+   if(DEBUG){
         Serial.print("CAN Speed: " + String(low_result, DEC));
         Serial.print(", CAN Brake: " + String(mid_result, DEC));
         Serial.print(",  CAN Angle: ");
         Serial.println(high_result, DEC);
         Serial.println("mapped angle: " + String(desired_angle));
-		  }
+      }
+	
     }		
 		else if(canId == HiStatus_CANID){ //High-level Status change (just e-stop for now 4/23/19)
       desired_speed_mmPs = 0;
 			eStop();
     }
   }
-	interrupts();
-}
+ }
 
 //Estop method for high or RC calls
 void Vehicle::eStop() {

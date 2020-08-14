@@ -10,7 +10,7 @@
 #endif
 
 //Version can be 1,3 or 4; LLB = Low Level Board = Drive By Wire
-#define LLBversion 3
+#define LLBversion 4
 
 /*---------- Version 1 - No Longer supported------------------------
 #if LLBversion == 1
@@ -139,67 +139,73 @@
 
 // Command to e-bike controller to use regenerative braking; not used 
 #define REGEN_PIN           22
-// Servo to control the brakes; not used
-#define BRAKE_PULSE_PIN     23
+// The odd numbered pins from 23 to 39 are unassigned.
+
 // Command to e-bike controller to drive in reverse; not used
 #define REVERSE_PIN         24
- // keep-alive watchdog is not yet implemented
-#define WATCHDOG_PIN        25  
 // Pin used to steer the vehicle with a pulse
 #define STEER_PULSE_PIN     26
 // Relay that turns on power to the steering system
-#define STEER_ON_PIN        27
-
+#define STEER_ON_PIN        28
+// Debug or status for DBW
+#define DBW_LED             30
+ // keep-alive watchdog is not yet implemented
+#define WATCHDOG_PIN        32  
+// Pins 34 and 35 could conflict with the Router board on the Bridge.
 // Switch to drive in forward or reverse; not used
-#define FWDSW_PIN          34
-// Brakes, have relays for both on/off as well as selecting 12/24v power.
-#define BrakeVoltPin       37
+#define FWDSW_PIN          36
 #define BUZZER_PIN         38  // Not used
 #define BrakeOnPin         39
+// Brakes, have relays for both on/off as well as selecting 12/24v power.
+#define BrakeVoltPin       40
 
+// Servo to control the brakes; not used
+#define BRAKE_PULSE_PIN    41
 /* Signals D42-49 are digital interrupts */
 /* If implemented on aa Arduino Mega, these are on Port L and can use pin change interrupt. */
 /* Any Arduino Due pin can be an interrupt. */
-
 // Interrupt for can msg; not used
 #define IRPT_CAN_PIN       42
-
-// Not implemented
+// Multiple clicks per wheel revolution (not implemented)
 #define SPEEDOMETER_PIN    43
-/*------------ Dropped signals ------------------
- * The following signals have been dropped
-// motor hall phases occur multiple times per wheel revolution
-// A future design may make use of these for more precise speed feedback.
-// The speedometer_pin would be jumpered to the signal in use
-The three Hall Phases were never used IRPT_PHASE_A, IRPT_PHASE_B, IRPT_PHASE_C
-If we use a signal from the hub motor, it will be on the SPEEDOMETER_PIN 
-// physical E-Stop port; not used
-
-  IRPT_ESTOP_PIN is not used. It was intended for a remote e-stop, but the
-  e-stop now comes from the CAN bus.
-  D_36_PIN    // Never used; intended as a spare signal
- -------------------------------------------------------------*/
 // When the E-bike controller has power, this line is 5V.
 // If it falls to zero, ebike has lost power.
 #define EBIKE_POWER_IN_PIN 45
 
 // Wheel click interrupt (digitally high or low, referred to as an "odometer"). Once per wheel revolution.
+// Odometer reed switch is pulled up to high voltage.
 // IRPT_WHEEL = WHEELROTATION
-#define IRPT_WHEEL         49
+#define IRPT_WHEEL         47
+// DAC channel is he DAC address for throttle; not an Arduino pin.
+#define DAC_CHANNEL         0   
+/*------------ Dropped signals ------------------
+ * The following signals have been dropped
+// Motor hall phases occur multiple times per wheel revolution
+// A future design may make use of these for more precise speed feedback.
+// The speedometer_pin would be jumpered to the signal in use
+   The three Hall Phases were never used: IRPT_PHASE_A, IRPT_PHASE_B, IRPT_PHASE_C
+   If we use a signal from the hub motor, it will be on the SPEEDOMETER_PIN 
+
+// physical E-Stop port; not used
+  IRPT_ESTOP_PIN is not used. It was intended for a remote e-stop, but the
+  e-stop now comes from the CAN bus.
+  D_36_PIN    // Never used; intended as a spare signal
+ -------------------------------------------------------------*/
 
 // On the Due, SPI, CAN_SS and DAC_SS are not used. Use DAC0, DAC1, CANRX and CANTX  
 // On Due MISO, MOSI, SCK are only on the ICSP, which is blocked by the motor shield.
 
 // On the Mega, use SPI to create DAC0, DAC1, CANRX and CANTX
-
+// Pins 48-53 are reserved for the Mega.
+// Mega option is not expected to ever be implemented
 #ifdef __AVR_ATmega2560__
 // CANbus slave select
-#define CAN_SS_PIN         50  
+#define CAN_SS_PIN         49  
 // SPI chip select for DAC slave select. Channel A is for throttle
-#define DAC_SS_PIN         54 
+#define DAC_SS_PIN         48 
 // we only use channel A for the throttle. B is routed but unused.
-#define DAC_CHANNEL         0   
-// Pins 51,52,53 are MISO, MOSI, SCK.
+
+// Pins 50,51,52,53 are MISO, MOSI, SCK, SS.
 #endif // ATmega2560
 
 #endif  // LLBversion 
