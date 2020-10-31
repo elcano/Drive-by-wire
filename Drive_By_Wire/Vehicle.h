@@ -3,14 +3,21 @@
 #include "Brakes.h"
 #include "ThrottleController.h"
 #include "SteeringController.h"
-#include <due_can.h> // added for due conversion ******************
+#ifdef __SAM3X8E__
+	// Only for Arduino Due
+  	#include <due_can.h> // added for due conversion ******************
+#endif
 
 class Vehicle{
 private:
 	static Brakes brake;
 	static ThrottleController throttle;
 	SteeringController steer;
- 	CAN_FRAME incoming; // added for due conversion ******************
+  	#ifdef __SAM3X8E__
+	  	// Only for Due CAN features -- CAN_FRAME is not compatible with Arduino Mega
+		CAN_FRAME incoming; 
+		CAN_FRAME outgoing;
+	#endif
 	static volatile int32_t desired_speed_mmPs;
 	static volatile int32_t desired_angle;
 	int32_t currentSpeed;
