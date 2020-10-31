@@ -1,6 +1,8 @@
 #include "DBW_Pins.h"
 #include "Vehicle.h"
-#include <mcp_can.h>
+#include <mcp_can.h> //TODO: should this be behind an #ifdef for mega only??
+
+
 #include "Can_Protocol.h"
 #ifndef TESTING
 #include <Arduino.h>
@@ -35,7 +37,12 @@ Vehicle::Vehicle(){
   if(DEBUG)
 		Serial.println("CAN BUS init ok!");
 #else
-    // TODO 8/14/20: Put in code for Due
+  // TODO: Verfiy successful conversion to due_can init -- check: is Can0.begin(baudrate) == 1 success?
+  if (Can0.begin(CAN_BPS_500K)) // initalize CAN with 500kbps baud rate  
+  {
+    Serial.println("Can0 init success"); 
+  }
+  
 #endif  // Mega
 	 //attachPCINT(digitalPinToPCINT(IRPT_ESTOP_PIN), eStop, RISING);
    //attachPCINT(digitalPinToPCINT(IRPT_CAN_PIN), recieveCan, RISING);
@@ -141,22 +148,21 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
 	unsigned char len = 0;
   unsigned char buf[8];
   unsigned int canId = 0;
+
 #ifdef __AVR_ATmega2560__
   if (CAN_MSGAVAIL == CAN.checkReceive()){  //found new instructions
     CAN.readMsgBuf(&len, buf);    // read data,  len: data length, buf: data buf
     canId = CAN.getCanId();
- #else
-    // TODO 8/14/20: Put in code for Due
-    {
- #endif  // Mega
+
     interrupts();
+
+    //TODO: translate from mcp_can methods to can_common / due_can -- TODO: Can I just replace this with due CAN code for both? it uses can_common which is compatible with mcp2515
     if (canId == HiDrive_CANID) { // the drive ID receive from high level 
 		  if (DEBUG) {
 			  Serial.println("RECEIVED CAN MESSAGE FROM HIGH LEVEL WITH ID: " + String(canId, HEX));
 		  }
       // SPEED IN mm/s
-      int low_result = (unsigned int)((buf[0] << 8) | buf[1]);
-     
+      int low_result = (unsigned int)((buf[0] << 8) | buf[1]);     
       desired_speed_mmPs = low_result;
 
       // BRAKE ON/OFF
@@ -167,13 +173,13 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
      // WHEEL ANGLE
       int high_result = (unsigned int)((buf[4] << 8) | buf[5]);
       desired_angle= map(high_result,-1800,1800,-90000,90000); //map to larger range for steering
-   if(DEBUG){
-        Serial.print("CAN Speed: " + String(low_result, DEC));
-        Serial.print(", CAN Brake: " + String(mid_result, DEC));
-        Serial.print(",  CAN Angle: ");
-        Serial.println(high_result, DEC);
-        Serial.println("mapped angle: " + String(desired_angle));
-      }
+      if(DEBUG){
+          Serial.print("CAN Speed: " + String(low_result, DEC));
+          Serial.print(", CAN Brake: " + String(mid_result, DEC));
+          Serial.print(",  CAN Angle: ");
+          Serial.println(high_result, DEC);
+          Serial.println("mapped angle: " + String(desired_angle));
+        }
 	
     }		
 		else if(canId == HiStatus_CANID){ //High-level Status change (just e-stop for now 4/23/19)
@@ -181,6 +187,49 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
 			eStop();
     }
   }
+
+ #else 
+    // TODO 8/14/20: Put in code for Due********************************************************************************************************************
+   Can0.watchForRange(Actual_CANID, HiStatus_CANID); //filter for high level communication
+   while (Can0.available() > 0) { // check if CAN message available
+      Can0.read(incoming);
+      canId = incoming.id;
+   }
+    
+    interrupts();
+    //TODO: translate from mcp_can methods to can_common / due_can
+    if (canId == HiDrive_CANID) { // the drive ID receive from high level 
+		  if (DEBUG) {
+			  Serial.println("RECEIVED CAN MESSAGE FROM HIGH LEVEL WITH ID: " + String(canId, HEX));
+		  }
+      // SPEED IN mm/s
+      int low_result = (unsigned int)((incoming.data.byte[0] << 8) | incoming.data.byte[1]);     
+      desired_speed_mmPs = low_result;
+
+      // BRAKE ON/OFF
+      int mid_result = (unsigned int)((incoming.data.byte[2] << 8) | incoming.data.byte[3]);
+      if (mid_result > 0) brake.Stop();
+      else brake.Release();
+		 
+     // WHEEL ANGLE
+      int high_result = (unsigned int)((incoming.data.byte[4] << 8) | incoming.data.byte[5]);
+      desired_angle= map(high_result,-1800,1800,-90000,90000); //map to larger range for steering
+      if(DEBUG){
+          Serial.print("CAN Speed: " + String(low_result, DEC));
+          Serial.print(", CAN Brake: " + String(mid_result, DEC));
+          Serial.print(",  CAN Angle: ");
+          Serial.println(high_result, DEC);
+          Serial.println("mapped angle: " + String(desired_angle));
+        }	
+    }		
+		else if(canId == HiStatus_CANID){ //High-level Status change (just e-stop for now 4/23/19)
+      desired_speed_mmPs = 0;
+			eStop();
+    }
+  // end due conversion code***************************************************************************************************************************
+ 
+ #endif  // Mega
+  
  }
 
 //Estop method for high or RC calls
