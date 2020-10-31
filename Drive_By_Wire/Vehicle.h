@@ -15,6 +15,7 @@ private:
 	SteeringController steer;
   	#ifdef __SAM3X8E__
 	  	// Only for Due CAN features -- CAN_FRAME is not compatible with Arduino Mega
+		// CAN_FRAME is defined in can_common.h
 		CAN_FRAME incoming; 
 		CAN_FRAME outgoing;
 	#endif

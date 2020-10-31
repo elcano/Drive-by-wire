@@ -189,7 +189,6 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
     }
 
   #else // else CAN message receipt for system using Arduino Due
-    // TODO 10/30/20: Check if HiStatus_CANID or HiDrive_CANID is correct parameter in Can0.watchForRange()
     Can0.watchForRange(Actual_CANID, HiStatus_CANID); //filter for high level communication 
     while (Can0.available() > 0) { // check if CAN message available
         Can0.read(incoming);
