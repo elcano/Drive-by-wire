@@ -5,7 +5,7 @@
 #include "SteeringController.h"
 #ifdef __SAM3X8E__
 	// Only for Arduino Due
-  	#include <due_can.h> // added for due conversion ******************
+  	#include <due_can.h> 
 #endif
 
 class Vehicle{
@@ -24,7 +24,7 @@ private:
 	int32_t currentSpeed;
 	int32_t currentAngle;
   	//static void recieveCan();
-  	void recieveCan(); // removed static to verify code compiles -- error using CAN_FRAME incoming in static function -- TODO: how to resolve while using static??
+  	void recieveCan(); 
 	
 
 public:
