@@ -6,7 +6,10 @@
 #include "DBW_Pins.h"
 #include <SPI.h>
 #include "Vehicle.h"
-#include "mcp_can.h"
+#ifdef __AVR_ATmega2560__
+  #include "mcp_can.h"
+#endif
+
 #define baud 115200   // baudrate for debugging with a host PC over USB serial
 
 Vehicle *myTrike;
