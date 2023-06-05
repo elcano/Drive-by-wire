@@ -9,6 +9,7 @@
 #ifdef __AVR_ATmega2560__
 // Only for Arduino Mega
   #include <mcp_can.h> 
+  #include <mcp2515_can.h> 
   #include <PinChangeInterrupt.h>
 #endif  // Mega
 
@@ -18,7 +19,7 @@ volatile int32_t Vehicle::desired_angle;
 Brakes Vehicle::brake;
 ThrottleController Vehicle::throttle;
 #ifdef __AVR_ATmega2560__
-  MCP_CAN CAN(CAN_SS_PIN); // pin for CS on Mega
+  mcp2515_can CAN(CAN_SS_PIN); // pin for CS on Mega
 #endif
 /****************************************************************************
  * Constructor
@@ -105,7 +106,7 @@ void Vehicle::update() {
     MSG.angle =  map(currentAngle,-90000,90000,-90,90);
 
   #ifdef __AVR_ATmega2560__
-      CAN.sendMsgBuf(Actual_CANID, 0,8, (uint8_t*)&MSG);
+      CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0,8, (uint8_t*)&MSG);
   #else
       outgoing.data.low = MSG.sspeed;
       outgoing.data.high = MSG.angle;
