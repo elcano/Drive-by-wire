@@ -6,11 +6,12 @@
 #include "DBW_Pins.h"
 #include <SPI.h>
 #include "Vehicle.h"
+
 #ifdef __AVR_ATmega2560__
-  #include "mcp_can.h"
+#include "mcp_can.h"
 #endif
 
-#define baud 115200   // baudrate for debugging with a host PC over USB serial
+#define baud 115200  // baudrate for debugging with a host PC over USB serial
 
 Vehicle *myTrike;
 
@@ -29,13 +30,13 @@ void setup() {
   myTrike = new Vehicle();
 }
 
-void loop()
-{
+void loop() {
   //Timing code
   nextTime = nextTime + LOOP_TIME_MS;
   uint32_t timeStart_ms = millis();
 
- myTrike->update();
+  //myTrike->update();
+  myTrike->updateRC();
 
   //Timing code
   endTime = millis();
