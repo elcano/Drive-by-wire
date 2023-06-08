@@ -72,8 +72,19 @@ git clone https://github.com/collin80/due_can.git
 * **Selecting Serial Port:** Tools -> Port -> COM (Arduino Mega/Due)
 * **Accessing Serial Monitor:** Right-hand Corner -> Select Baud Rate (115200)
 
-## Modification:
-* Vehicle.cpp/Vehicle.h: 
-  - Constructor of CAN Object is type ```mcp2515_can``` not ```MCP_CAN```
-  - Include ```mcp2515_can.h```
-  - sendMsgBuf needs to reference MCP_CAN ```CAN.MCP_CAN::sendMsgBuf```
+
+## Drive-by-Wire: 
+* **Low-level board code with RC control support with existing code for brakes, steering, and throttle.** 
+
+## Test: 
+* **Low-level board code with three functions to test each subsystems individually (brakes, steering, throttle).** 
+* testBrake(): Activates brakes with 24V via Stop(), Holds brakes with 12V after 800ms via Update(), Releases brakes every ~2 seconds.
+* testThrottle(): Gradually increases speed and decreases speed on DACA.
+* testSteering(): Changes directions every 3 seconds, moving the linear actuator. 
+
+## Sender: 
+* **High-level board code to communicate with low-level board using CAN communication.** 
+* Arguments for Function: Each data is reserved for 2 bytes. 
+    *   currentSpeed: Controls the speed via the DACA, input: (0 -255).
+    *   currentBrake: Apply and updates brakes if necessary, input: (0 - releases brakes, anything above 0 - applies brakes).
+    *   currentAngle: Changes direction based on input (may need to calibrate based on sensors), left: 779 (1ms), middle: 722 (1.5ms), right: 639 (1.85ms).
