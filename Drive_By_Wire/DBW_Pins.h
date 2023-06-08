@@ -2,7 +2,7 @@
 #define _DBW_PINS_
 
 #define CARLA true
-#define DEBUG true
+#define DEBUG false
 #define USE_PIDS false
 
 #ifndef TESTING
@@ -10,7 +10,7 @@
 #endif
 
 //Version can be 1,3 or 4; LLB = Low Level Board = Drive By Wire
-#define LLBversion 4
+#define LLBversion 3
 
 /*---------- Version 1 - No Longer supported------------------------
 #if LLBversion == 1
@@ -120,7 +120,7 @@
  *        The 12V in on this connector is tied to the 12V in on the CAN bus connector,
  *        There should be only one connector to 12V power in, 
  *        A spare 12V connector could be wired to the motor shield, which
- *        already has a common ground.
+ *        already has a common ground.`
  *  One 4 wire screw terminal:
  *        12V out (controlled by STEER_ON), GND, IRPT_WHEEL, GND
  *  RJ45 to e-bike Motor Controller:

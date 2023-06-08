@@ -37,16 +37,17 @@
      *  You shoud hear a click when the relay operates.
      *  If there is a change in LED, but no click, the relay does not have enough power.
      */
-#define RELAYInversion      false  
+#define RELAYInversion false
 
-class Brakes
-{
- public:
+class Brakes {
+public:
   Brakes();
   void Stop();
   void Release();
   void Update();
- private:
-  volatile enum brake_state {BR_OFF, BR_HI_VOLTS, BR_LO_VOLTS} state;
+private:
+  volatile enum brake_state { BR_OFF,
+                              BR_HI_VOLTS,
+                              BR_LO_VOLTS } state;
   volatile uint32_t clock_hi_ms;
- } ;
+};
