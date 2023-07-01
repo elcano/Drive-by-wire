@@ -1,0 +1,87 @@
+# Add more here #
+
+# These are specific to the elcano repository.
+
+# Note: Settings.h is a site-specific variant of SettingsTemplate.h.
+# Only SettingsTemplate.h should ever be committed into the repository.
+# Do not use git add with any of these options, ever, even once.
+# -A
+# --all
+# --no-ignore-removal
+# --no-all
+# --ignore-removal
+libraries/Settings/Settings.h
+Settings.h
+
+# Add any required Arduino or 3rd party libraries here, so they do not
+# show up in git status.
+libraries/ArduinoUnit
+libraries/PID
+libraries/SD
+libraries/Servo
+libraries/TimerOne
+
+###################
+.dropbox.cache
+
+# The rest are from https://help.github.com/articles/ignoring-files #
+#####################################################################
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.pyc
+*.gch
+
+# Visual Studio Files
+########################
+*.vcxproj
+*_vm/
+*.user
+*.filters
+*.vs/
+*.sln
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+*.b#*
+*.s#*
+*.job
+*.pro
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+
+
+#Elcano files
+*/Debug/
+
