@@ -58,7 +58,7 @@ int32_t SteeringController::update(int32_t desiredAngle) {
   }
   delay(1);
 
-  //return map(currentSteeringUS, MIN_TURN_MS,MAX_TURN_MS,MIN_TURN_Mdegrees,MAX_TURN_Mdegrees); // old settings
+  //return map(currentSteeringUS, MIN_TURN_MS,MAX_TURN_MS,MIN_TURN_Kdegrees,MAX_TURN_Kdegrees); // old settings
 
   return desiredAngle;
   //steerAngleUS = computeAngleRight(); // uncomment when testing with sensors

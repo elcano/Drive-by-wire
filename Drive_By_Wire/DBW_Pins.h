@@ -1,7 +1,6 @@
 #ifndef _DBW_PINS_
 #define _DBW_PINS_
 
-#define CARLA true
 #define DEBUG false
 #define USE_PIDS false
 
@@ -10,7 +9,7 @@
 #endif
 
 //Version can be 1,3 or 4; LLB = Low Level Board = Drive By Wire
-#define LLBversion 3
+#define LLBversion 4
 
 /*---------- Version 1 - No Longer supported------------------------
 #if LLBversion == 1
