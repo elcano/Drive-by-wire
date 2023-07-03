@@ -1,11 +1,8 @@
-#ifndef Testing
 #include <Arduino.h>
-#endif  // Mega
-
 #ifdef __AVR_ATmega2560__
 // Only for Arduino Mega
 #include <PinChangeInterrupt.h>
-#endif  // Testing
+#endif  // Mega
 
 #include "DBW_Pins.h"
 #include "ThrottleController.h"

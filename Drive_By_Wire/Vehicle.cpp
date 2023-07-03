@@ -4,10 +4,7 @@
 #include <mcp2518fd_can.h>
 #include <mcp2518fd_can_dfs.h>
 #include <mcp_can.h>
-
-#ifndef TESTING
 #include <Arduino.h>
-#endif  // Testing
 
 #ifdef __AVR_ATmega2560__
 // Only for Arduino Mega

@@ -1,7 +1,4 @@
-#ifndef TESTING
 #include <Arduino.h>
-#endif
-
 #include "DBW_Pins.h"
 #include "Settings.h"
 #include "Brakes.h"

@@ -1,7 +1,4 @@
-#ifndef TESTING
 #include <Arduino.h>
-#endif
-
 #include "RC_Controller.h"
 #include "Settings.h"
 

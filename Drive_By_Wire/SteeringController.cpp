@@ -1,13 +1,8 @@
-#ifndef TESTING
 #include <Arduino.h>
 #include "PID_v1.h"
-#endif
-
 #include "DBW_Pins.h"
 #include "Settings.h"
 #include "SteeringController.h"
-
-
 
 SteeringController::SteeringController()
   : steerPID(&steerAngleUS, &PIDSteeringOutput_us, &desiredTurn_us, proportional_steering, integral_steering, derivative_steering, DIRECT) {

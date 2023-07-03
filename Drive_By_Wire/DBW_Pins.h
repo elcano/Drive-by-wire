@@ -2,17 +2,15 @@
 #define _DBW_PINS_
 
 #define DEBUG false
-#define USE_PIDS false
+#define USE_PIDS true
 
-#ifndef TESTING
 #include <Arduino.h>
-#endif
 
 //Version can be 1,3 or 4; LLB = Low Level Board = Drive By Wire
-#define LLBversion 4
+#define DBWversion 4
 
 /*---------- Version 1 - No Longer supported------------------------
-#if LLBversion == 1
+#if DBWversion == 1
 //Wheel click interrupt
 #define IRPT_WHEEL         3
 #define STEER_OUT_PIN      5
@@ -26,7 +24,7 @@
 #define AngleSensorRight  A3
 */
 /*---------- Version 3: Arduino Mega -------------------------------------*/
-#if LLBversion == 3
+#if DBWversion == 3
 
 /* Pin declarations */
 // Serial Monitor uses pins 0,1 for RX0,TX0
@@ -89,7 +87,7 @@
 
 
 /*---------- Version 4: Arduino Due or Mega -------------------------------------*/
-#else // LLBversion != 3
+#else // DBWversion != 3
 
 // Serial Monitor uses pins 0,1 for RX0,TX0
 // Pins D0-D13 and A0-A5 are reserved for the Motor Shield
@@ -194,19 +192,6 @@
 // On the Due, SPI, CAN_SS and DAC_SS are not used. Use DAC0, DAC1, CANRX and CANTX  
 // On Due MISO, MOSI, SCK are only on the ICSP, which is blocked by the motor shield.
 
-// On the Mega, use SPI to create DAC0, DAC1, CANRX and CANTX
-// Pins 48-53 are reserved for the Mega.
-// Mega option is not expected to ever be implemented
-#ifdef __AVR_ATmega2560__
-// CANbus slave select
-#define CAN_SS_PIN         49  
-// SPI chip select for DAC slave select. Channel A is for throttle
-#define DAC_SS_PIN         48 
-// we only use channel A for the throttle. B is routed but unused.
-
-// Pins 50,51,52,53 are MISO, MOSI, SCK, SS.
-#endif // ATmega2560
-
-#endif  // LLBversion 
+#endif  // DBWversion 
 
 #endif   //_DBW_PINS_
