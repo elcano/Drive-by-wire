@@ -5,7 +5,7 @@
 #include "SteeringController.h"
 #include "RC_Controller.h"
 
-#ifdef __SAM3X8E__
+#if DBWversion >= 4
 // Only for Arduino Due
 #include <due_can.h>
 #endif
@@ -17,7 +17,7 @@ private:
   SteeringController steer;
   static RC_Controller RC;
 
-#ifdef __SAM3X8E__
+#if DBWversion >= 4
   // Only for Due CAN features -- CAN_FRAME is not compatible with Arduino Mega
   // CAN_FRAME is defined in can_common.h
   CAN_FRAME incoming;

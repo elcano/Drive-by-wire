@@ -7,7 +7,7 @@
 #include <SPI.h>
 #include "Vehicle.h"
 
-#ifdef __AVR_ATmega2560__
+#if DBWversion < 4
 #include "mcp_can.h"
 #endif
 

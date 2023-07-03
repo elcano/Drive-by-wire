@@ -24,7 +24,7 @@
 #define AngleSensorRight  A3
 */
 /*---------- Version 3: Arduino Mega -------------------------------------*/
-#if DBWversion == 3
+#if DBWversion < 4
 
 /* Pin declarations */
 // Serial Monitor uses pins 0,1 for RX0,TX0
@@ -86,8 +86,8 @@
 #define IRPT_PHASE_A       A15
 
 
-/*---------- Version 4: Arduino Due or Mega -------------------------------------*/
-#else // DBWversion != 3
+/*---------- Version 4: Arduino Due -------------------------------------*/
+#else // DBWversion >=4
 
 // Serial Monitor uses pins 0,1 for RX0,TX0
 // Pins D0-D13 and A0-A5 are reserved for the Motor Shield

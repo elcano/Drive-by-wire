@@ -5,13 +5,13 @@
 #include <mcp2518fd_can_dfs.h>
 #include <mcp_can.h>
 #include <Arduino.h>
-
-#ifdef __AVR_ATmega2560__
+#include "DBW_Pins.h"
+#if DBWversion < 4
 // Only for Arduino Mega
 #include <PinChangeInterrupt.h>
 #endif  // Mega
 
-#include "DBW_Pins.h"
+
 #include "Vehicle.h"
 #include "Can_Protocol.h"
 
@@ -19,7 +19,7 @@ RC_Controller Vehicle::RC;
 
 Brakes Vehicle::brake;
 ThrottleController Vehicle::throttle;
-#ifdef __AVR_ATmega2560__
+#if DBWversion < 4
 mcp2515_can CAN(CAN_SS_PIN);  // pin for CS on Mega
 #endif
 
@@ -40,7 +40,7 @@ Vehicle::Vehicle() {
   desired_brake = 0;
   desired_angle = 0;
 
-#ifdef __AVR_ATmega2560__
+#if DBWversion < 4
   // Keep trying to initialize CAN
   while (CAN_OK != CAN.begin(CAN_500KBPS)) {
     if (DEBUG) {
@@ -51,7 +51,7 @@ Vehicle::Vehicle() {
   if (DEBUG)
     Serial.println("CAN BUS init ok!");
 
-#else
+#else  // Due
   if (Can0.begin(CAN_BPS_500K))  // initalize CAN with 500kbps baud rate
   {
     Serial.println("Can0 init success");
@@ -59,7 +59,7 @@ Vehicle::Vehicle() {
     Serial.println("Can0 init failed");
   }
 
-#endif  // Mega
+#endif  // DBWversion
   //attachPCINT(digitalPinToPCINT(IRPT_ESTOP_PIN), eStop, RISING);
   //attachPCINT(digitalPinToPCINT(IRPT_CAN_PIN), recieveCan, RISING);
 }
@@ -120,7 +120,7 @@ void Vehicle::update() {
   MSG.reserved = 0;
 
   // unknown status (120 - 145)
-#ifdef __AVR_ATmega2560__
+ #if DBWversion < 4
   CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 8, (uint8_t*)&MSG);
 
   if (DEBUG) {
@@ -130,7 +130,7 @@ void Vehicle::update() {
       Serial.println("Message Failed");
     }
   }
-#else
+#else  // Due
   outgoing.data.int16[0] = MSG.sspeed;
   outgoing.data.int16[1] = MSG.brake;
   outgoing.data.int16[2] = MSG.angle;
@@ -144,7 +144,7 @@ void Vehicle::update() {
       Serial.println("Message Failed");
     }
   }
-#endif
+#endif DBWversion
   // Update every second
   delay(1000);
 }
@@ -183,7 +183,7 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
   unsigned char buf[8];
   unsigned int canId = 0;
 
-#ifdef __AVR_ATmega2560__                    // CAN message receipt, if system is using Arduino Mega
+#if DBWversion < 4                           // CAN message receipt, if system is using Arduino Mega
   if (CAN_MSGAVAIL == CAN.checkReceive()) {  //found new instructions
     CAN.readMsgBuf(&len, buf);               // read data,  len: data length, buf: data buf
     canId = CAN.getCanId();

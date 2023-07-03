@@ -8,11 +8,11 @@
 #define RC_CH2_THROTTLE_BR 1  
 
 // Channel Pins on RC
-#ifdef __AVR_ATmega2560__
+#if DBWversion < 4
 #define STEERING_CH1_PIN 18  
 #define THROTTLE_BR_CH2_PIN 19  
 
-#else
+#else  // Due
 #define STEERING_CH1_PIN 8  
 #define THROTTLE_BR_CH2_PIN 9  
 #endif
