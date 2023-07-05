@@ -1,13 +1,8 @@
-#include <can-serial.h>
-#include <mcp2515_can.h>
-#include <mcp2515_can_dfs.h>
-#include <mcp2518fd_can.h>
-#include <mcp2518fd_can_dfs.h>
-#include <mcp_can.h>
 #include <Arduino.h>
 #include "DBW_Pins.h"
 #if DBWversion < 4
 // Only for Arduino Mega
+#include <mcp2515_can.h>     // CAN_BUS_shield library
 #include <PinChangeInterrupt.h>
 #endif  // Mega
 

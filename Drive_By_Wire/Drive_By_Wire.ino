@@ -7,10 +7,6 @@
 #include <SPI.h>
 #include "Vehicle.h"
 
-#if DBWversion < 4
-#include "mcp_can.h"
-#endif
-
 #define baud 115200  // baudrate for debugging with a host PC over USB serial
 
 Vehicle *myTrike;

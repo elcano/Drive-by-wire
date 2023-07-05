@@ -7,7 +7,7 @@
 
 #if DBWversion >= 4
 // Only for Arduino Due
-#include <due_can.h>
+#include <due_can.h>    // from due-can library
 #endif
 
 class Vehicle {
