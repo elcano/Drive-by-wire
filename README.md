@@ -7,40 +7,27 @@ The Sender files are intended for use on the Hi-Level board and do not really be
 
 Libraries needed are listed below:
 
-* CAN_BUS_SHIELD by Seeed-Studio
-
-    https://github.com/Seeed-Studio/CAN_BUS_Shield
-
-    Contains CAN_BUS communication protocols and required files such as **mcp_can** and **can-serial**
-
+ALL Versions ________________________________
 * PID by Brett Beauregard
-
     https://github.com/br3ttb/Arduino-PID-Library
-
     A simple controller calculator (proportional integral derivative) to calculate the error between a desired output and an actual output. Has files **PID_v1**
 
+Version 3 (Arduino Mega) ________________________________
+* CAN_BUS_SHIELD by Seeed-Studio
+    https://github.com/Seeed-Studio/CAN_BUS_Shield
+    Contains CAN_BUS communication protocols and required files such as **mcp_can** and **can-serial**
+
 * Pin Change Interrupt by Nico Hood
-
     https://github.com/NicoHood/PinChangeInterrupt
-
     For custom configuration of Arduino pin properties. Has files **PinChangeInterupt**
 
 * MCP48x2 DAC by Jonas Forsberg
-
     https://github.com/SweBarre/MCP48x2.
-
     Library for Digital to anolog converter. Has files **MCP48x2**
 
-* Arduino Due Timer Interrupts by Ivan Seidel
-
-    https://github.com/ivanseidel/DueTimer
-
-    Library for setting the frequency of Arduino updates. Has files **DueTimer**
-    
+Version 4 (Arduino Due)  _______________________________________________
 * Due CAN and CAN Common by Collin Kidder
-
     https://github.com/collin80/due_can
-    
     https://github.com/collin80/can_common
 
 
