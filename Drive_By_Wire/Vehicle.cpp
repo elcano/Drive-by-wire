@@ -1,3 +1,13 @@
+#include "DBW_Pins.h"
+#include <SPI.h>
+#include "Vehicle.h"
+#include <SD.h>
+#include <RTClib.h>
+#include <Wire.h>
+#include <DS1307RTC.h>
+#include "Can_Protocol.h"
+#include <stdio.h>
+
 #include <Arduino.h>
 #include "DBW_Pins.h"
 #if DBWversion < 4
@@ -6,9 +16,15 @@
 #include <PinChangeInterrupt.h>
 #endif  // Mega
 
+const char *monthName[12] = {
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
+tmElements_t tm;
 
-#include "Vehicle.h"
-#include "Can_Protocol.h"
+const int chipSelect  = 53; //chipSelect pin for the SD card Reader
+
+
 
 RC_Controller Vehicle::RC;
 
@@ -37,7 +53,7 @@ Vehicle::Vehicle() {
 
 #if DBWversion < 4
   // Keep trying to initialize CAN
-  while (CAN_OK != CAN.begin(CAN_500KBPS)) {
+  while (!CAN.begin(CAN_500KBPS)) {
     if (DEBUG) {
       Serial.println("CAN BUS Shield init fail");
     }
@@ -47,7 +63,7 @@ Vehicle::Vehicle() {
     Serial.println("CAN BUS init ok!");
 
 #else  // Due
-  if (Can0.begin(CAN_BPS_500K))  // initalize CAN with 500kbps baud rate
+  if (!Can0.begin(CAN_BPS_500K))  // initalize CAN with 500kbps baud rate
   {
     Serial.println("Can0 init success");
   } else {
@@ -57,6 +73,10 @@ Vehicle::Vehicle() {
 #endif  // DBWversion
   //attachPCINT(digitalPinToPCINT(IRPT_ESTOP_PIN), eStop, RISING);
   //attachPCINT(digitalPinToPCINT(IRPT_CAN_PIN), recieveCan, RISING);
+
+  initalize();
+
+
 }
 
 /*****************************************************************************
@@ -64,7 +84,105 @@ Vehicle::Vehicle() {
  ****************************************************************************/
 Vehicle::~Vehicle() {
 }
+/*******************************
+Initilze SD Card
+******************/ 
 
+void Vehicle::initalize(){
+  bool parse=false;
+  bool config=false;
+
+  // get the date and time the compiler was run
+  if (getDate(__DATE__) && getTime(__TIME__)) {
+    parse = true;
+    // and configure the RTC with this info
+    if (RTC.write(tm)) {
+      config = true;
+    }
+  }
+
+  if (parse && config) {
+    Serial.print("DS1307 configured Time=");
+    Serial.print(__TIME__);
+    Serial.print(", Date=");
+    Serial.println(__DATE__);
+  } else if (parse) {
+    Serial.println("DS1307 Communication Error :-{");
+    Serial.println("Please check your circuitry");
+  } else {
+    Serial.print("Could not parse info from the compiler, Time=\"");
+    Serial.print(__TIME__);
+    Serial.print("\", Date=\"");
+    Serial.print(__DATE__);
+    Serial.println("\"");
+  }
+      if (RTC.read(tm)) {
+    Serial.print("Ok, Time = ");
+    print2digits(tm.Hour);
+    Serial.write(':');
+    print2digits(tm.Minute);
+    Serial.write(':');
+    print2digits(tm.Second);
+    Serial.print(", Date (D/M/Y) = ");
+    Serial.print(tm.Day);
+    Serial.write('/');
+    Serial.print(tm.Month);
+    Serial.write('/');
+    Serial.print(tmYearToCalendar(tm.Year));
+    Serial.println();
+  } else {
+    if (RTC.chipPresent()) {
+      Serial.println("The DS1307 is stopped.  Please run the SetTime");
+      Serial.println("example to initialize the time and begin running.");
+      Serial.println();
+    } else {
+      Serial.println("DS1307 read error!  Please check the circuitry.");
+      Serial.println();
+    }
+    //delay(9000);
+  }
+ // delay(2000);
+
+
+// initialize the SD card
+  Serial.print("Initializing SD card...");
+
+  // make sure that the default chip select pin is set to
+  // output, even if you don't use it:
+  pinMode(53, OUTPUT);
+
+  // see if the card is present and can be initialized:
+  if (!SD.begin(53)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    return;
+  }
+  Serial.println("card initialized.");
+
+  // create a new file
+  char filename[] = "LOGGER00.CSV";
+  for (uint8_t i = 0; i < 100; i++) {
+    filename[6] = i / 10 + '0';
+    filename[7] = i % 10 + '0';
+    if (!SD.exists(filename)) {
+      // only open a new file if it doesn't exist
+      logfile = SD.open(filename, FILE_READ);
+      break;  // leave the loop!
+    }
+  }
+
+  if (!logfile) {
+    error("file unable to open!");
+  }
+
+  Serial.print("Logging to: ");
+  Serial.println(filename);
+
+  // Add a header to the file
+  logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold\n");
+  logfile.flush();
+
+}
 
 /*****************************************************************************
    Struct for sending current speed and angle to high-level board through CAN
@@ -119,7 +237,7 @@ void Vehicle::update() {
   CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 8, (uint8_t*)&MSG);
 
   if (DEBUG) {
-    if (CAN_OK == CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 8, (uint8_t*)&MSG)) {
+    if (CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 8, (uint8_t*)&MSG)) {
       Serial.println("Sending Message to MEGA");
     } else {
       Serial.println("Message Failed");
@@ -286,21 +404,108 @@ void Vehicle::eStop() {
 // RC Control of Trike
 void Vehicle::updateRC() {
   RC.mapValues();
+  throttlePulse_ms=RC.getMappedValue(RC_CH2_THROTTLE_BR);
+  steerPulse_ms=RC.getMappedValue(RC_CH2_THROTTLE_BR); 
   if (RC.checkValidData()) {
-    if (RC.getMappedValue(RC_CH2_THROTTLE_BR) == -1 && brakeHold == 0) {  // Activate brakes
+    if (throttlePulse_ms == -1 && brakeHold == 0) {  // Activate brakes
       //Serial.println("24V is on" + String(RC.getMappedValue(RC_CH2_THROTTLE_BR)));
       eStop();
-    } else if (RC.getMappedValue(RC_CH2_THROTTLE_BR) == -1 && brakeHold == 1) {  // Hold brakes
+    } else if (throttlePulse_ms == -1 && brakeHold == 1) {  // Hold brakes
       //Serial.println("Brake is on" + String(RC.getMappedValue(RC_CH2_THROTTLE_BR)));
       brake.Update();
     } else {  // Release brakes
       brakeHold = 0;
       brake.Release();
-      throttle.update(RC.getMappedValue(RC_CH2_THROTTLE_BR));
+      throttle.update(throttlePulse_ms);
       //Serial.println(RC.getMappedValue(RC_CH2_THROTTLE_BR));
     }
 
-    //steer.update(RC.getMappedValue(RC_CH1_STEERING));
+    steer.update(steerPulse_ms);
+   // LogMonitor();
+    LogSD();
   }
   RC.clearFlag();
+}
+void Vehicle::LogMonitor() {
+  Serial.print(desired_speed_mmPs);  Serial.print(", ");
+  Serial.print(desired_brake);  Serial.print(", ");
+  Serial.print(desired_angle);  Serial.print(", ");
+  Serial.print(currentSpeed);  Serial.print(", ");
+  Serial.print(currentBrake);  Serial.print(", ");
+  Serial.print(currentAngle);  Serial.print(", ");
+  Serial.println(brakeHold); // Serial.print(", ");
+ // Serial.print(throttlePulse_ms);  Serial.print(", ");
+  //Serial.print(steerPulse_ms);  
+}
+
+void Vehicle::LogSD(){
+ // Log data to the file
+  logfile.print(millis());
+  logfile.print(",");
+  logfile.print(desired_speed_mmPs);
+  logfile.print(",");
+  logfile.print(desired_brake);
+  logfile.print(",");
+  logfile.print(desired_angle);
+  logfile.print(",");
+  logfile.print(currentSpeed);
+  logfile.print(",");
+  logfile.print(currentBrake);
+  logfile.print(",");
+  logfile.print(currentAngle);
+  logfile.print(",");
+  logfile.print(throttlePulse_ms);
+  logfile.print(",");
+  logfile.print(steerPulse_ms);
+  logfile.print(",");
+  logfile.println(brakeHold);
+  logfile.flush();  // Flush the file to make sure data is written immediately
+}
+
+void Vehicle::error(char *str)
+{
+  Serial.print("error: ");
+  Serial.println(str);
+
+  while(1);
+}
+
+
+
+
+void Vehicle::print2digits(int number) {
+  if (number >= 0 && number < 10) {
+    Serial.write('0');
+  }
+  Serial.print(number);
+}
+
+
+bool Vehicle::getTime(const char *str)
+{
+  int Hour, Min, Sec;
+
+  if (sscanf(str, "%d:%d:%d", &Hour, &Min, &Sec) != 3) return false;
+  tm.Hour = Hour;
+  tm.Minute = Min;
+  tm.Second = Sec;
+  return true;
+}
+
+
+bool Vehicle::getDate(const char *str)
+{
+  char Month[12];
+  int Day, Year;
+  uint8_t monthIndex;
+
+  if (sscanf(str, "%s %d %d", Month, &Day, &Year) != 3) return false;
+  for (monthIndex = 0; monthIndex < 12; monthIndex++) {
+    if (strcmp(Month, monthName[monthIndex]) == 0) break;
+  }
+  if (monthIndex >= 12) return false;
+  tm.Day = Day;
+  tm.Month = monthIndex + 1;
+  tm.Year = CalendarYrToTm(Year);
+  return true;
 }
