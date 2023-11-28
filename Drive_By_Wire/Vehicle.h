@@ -4,11 +4,17 @@
 #include "ThrottleController.h"
 #include "SteeringController.h"
 #include "RC_Controller.h"
+#include <TimeLib.h> 
+#include <SD.h>
+#include <stdio.h>
 
 #if DBWversion >= 4
 // Only for Arduino Due
 #include <due_can.h>    // from due-can library
 #endif
+
+extern const char *monthName[12];
+extern tmElements_t tm;
 
 class Vehicle {
 private:
@@ -16,6 +22,8 @@ private:
   static ThrottleController throttle;
   SteeringController steer;
   static RC_Controller RC;
+
+File logfile;
 
 #if DBWversion >= 4
   // Only for Due CAN features -- CAN_FRAME is not compatible with Arduino Mega
@@ -30,7 +38,16 @@ private:
   int16_t currentBrake;
   int16_t currentAngle;
   int brakeHold; // Hold brakes with 12V 
+  long throttlePulse_ms;
+  long steerPulse_ms;
+
   void recieveCan();
+  void initalize(); 
+  void error(char *str);
+  void print2digits(int number);
+  bool getTime(const char *str);
+  bool getDate(const char *str);
+
 
 
 public:
@@ -41,4 +58,7 @@ public:
   void eStop();
   void hard_Coded_Test(int16_t, int16_t, int16_t);
   void real_System(int16_t, int16_t, int16_t);
+  void LogSD();
+  void LogMonitor(); 
+  
 };
