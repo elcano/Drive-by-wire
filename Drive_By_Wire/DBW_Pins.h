@@ -7,7 +7,7 @@
 #include <Arduino.h>
 
 //Version can be 1,3 or 4; LLB = Low Level Board = Drive By Wire
-#define DBWversion 4
+#define DBWversion 3
 
 /*---------- Version 1 - No Longer supported------------------------
 #if DBWversion == 1
