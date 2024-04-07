@@ -36,6 +36,9 @@
 #define STEER_PULSE_PIN     6
 // Relay that turns on power to the steering system
 #define STEER_ON_PIN        8
+// Wheel angle sensors mounted on left and right steering columns
+#define L_SENSE_PIN    7
+#define R_SENSE_PIN    6
 
 // Command to e-bike controller to use regenerative braking; not used 
 #define REGEN_PIN          22
@@ -56,10 +59,6 @@
 // we only use channel A for the throttle. B is routed but unused.
 #define DAC_CHANNEL         0   
 // Pins 51,52,53 are MISO, MOSI, SCK.
-
-// Wheel angles sensors munted on left and right steering columns
-#define L_SENSE_PIN        A2
-#define R_SENSE_PIN        A3
 // originally intended as a return ground, these analog pins are free and on the steering header.
 // Intent was to use L_SENSE - L_RTN as a differential signal.
 //#define L_RTN_PIN        A6
@@ -131,8 +130,8 @@
 #define R_SENSE_PIN        A11
 // originally intended as a return ground, these analog pins are free and on the steering header.
 // Intent was to use L_SENSE - L_RTN as a differential signal.
-#define L_RTN_PIN          A8
-#define R_RTN_PIN          A9
+#define L_RTN_PIN          26
+#define R_RTN_PIN          27
 
 // Command to e-bike controller to use regenerative braking; not used 
 #define REGEN_PIN           22
@@ -143,7 +142,7 @@
 // Pin used to steer the vehicle with a pulse
 #define STEER_PULSE_PIN     26
 // Relay that turns on power to the steering system
-#define STEER_ON_PIN        28
+#define STEER_ON_PIN        D28
 // Debug or status for DBW
 #define DBW_LED             30
  // keep-alive watchdog is not yet implemented
