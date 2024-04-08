@@ -8,6 +8,11 @@ SteeringController::SteeringController()
   : steerPID(&steerAngleUS, &PIDSteeringOutput_us, &desiredTurn_us, proportional_steering, integral_steering, derivative_steering, DIRECT) {
   //Hacky fix for not burning servo circuit
   pinMode(STEER_ON_PIN, OUTPUT);
+  #if DBWversion == 4 
+    digitalWrite(STEER_ON_PIN, HIGH);
+  #endif
+
+
 
   steerPID.SetOutputLimits(MIN_TURN_MS, MAX_TURN_MS);
   steerPID.SetSampleTime(PID_CALCULATE_TIME);
@@ -51,6 +56,7 @@ int32_t SteeringController::update(int32_t desiredAngle) {
   } else {
     engageSteering(mappedAngle);
   }
+  
   delay(1);
 
   //return map(currentSteeringUS, MIN_TURN_MS,MAX_TURN_MS,MIN_TURN_Kdegrees,MAX_TURN_Kdegrees); // old settings
