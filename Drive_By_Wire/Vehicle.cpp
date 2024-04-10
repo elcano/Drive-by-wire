@@ -165,8 +165,10 @@ void Vehicle::initalize(){
     filename[6] = i / 10 + '0';
     filename[7] = i % 10 + '0';
     if (!SD.exists(filename)) {
+      Serial.print("File does not exist. New file name:");
+      Serial.println(filename);
       // only open a new file if it doesn't exist
-      logfile = SD.open(filename, FILE_READ);
+      logfile = SD.open(filename, FILE_WRITE);
       break;  // leave the loop!
     }
   }
@@ -234,10 +236,10 @@ void Vehicle::update() {
 
   // unknown status (120 - 145)
  #if DBWversion < 4
-  CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 8, (uint8_t*)&MSG);
+  CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 0, 8, (uint8_t*)&MSG);
 
   if (DEBUG) {
-    if (CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 8, (uint8_t*)&MSG)) {
+    if (CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 0,  8, (uint8_t*)&MSG)) {
       Serial.println("Sending Message to MEGA");
     } else {
       Serial.println("Message Failed");
@@ -405,7 +407,7 @@ void Vehicle::eStop() {
 void Vehicle::updateRC() {
   RC.mapValues();
   throttlePulse_ms=RC.getMappedValue(RC_CH2_THROTTLE_BR);
-  steerPulse_ms=RC.getMappedValue(RC_CH2_THROTTLE_BR); 
+  steerPulse_ms=RC.getMappedValue(RC_CH1_STEERING); 
   if (RC.checkValidData()) {
     if (throttlePulse_ms == -1 && brakeHold == 0) {  // Activate brakes
       //Serial.println("24V is on" + String(RC.getMappedValue(RC_CH2_THROTTLE_BR)));
