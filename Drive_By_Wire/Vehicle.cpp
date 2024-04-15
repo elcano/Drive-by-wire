@@ -181,7 +181,7 @@ void Vehicle::initalize(){
   Serial.println(filename);
 
   // Add a header to the file
-  logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold\n");
+  logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal\n"); // added steeringVal (modification)
   logfile.flush();
 
 }
@@ -407,7 +407,7 @@ void Vehicle::eStop() {
 void Vehicle::updateRC() {
   RC.mapValues();
   throttlePulse_ms=RC.getMappedValue(RC_CH2_THROTTLE_BR);
-  steerPulse_ms=RC.getMappedValue(RC_CH1_STEERING); 
+  steerPulse_ms=RC.getMappedValue(RC_CH1_STEERING); // is wheel angle and not pulse width 
   if (RC.checkValidData()) {
     if (throttlePulse_ms == -1 && brakeHold == 0) {  // Activate brakes
       //Serial.println("24V is on" + String(RC.getMappedValue(RC_CH2_THROTTLE_BR)));
@@ -422,7 +422,8 @@ void Vehicle::updateRC() {
       //Serial.println(RC.getMappedValue(RC_CH2_THROTTLE_BR));
     }
 
-    steer.update(steerPulse_ms);
+    currentAngle = steer.update(steerPulse_ms);
+    steeringVal = steer.getSteeringMode();
    // LogMonitor();
     LogSD();
   }
@@ -461,6 +462,8 @@ void Vehicle::LogSD(){
   logfile.print(steerPulse_ms);
   logfile.print(",");
   logfile.println(brakeHold);
+  logfile.print(",");
+  logfile.println(steeringVal);
   logfile.flush();  // Flush the file to make sure data is written immediately
 }
 

@@ -54,16 +54,16 @@ int32_t SteeringController::update(int32_t desiredAngle) {
   if (USE_PIDS) {
     SteeringPID(mappedAngle);
   } else {
-    engageSteering(mappedAngle);
+    engageSteering(mappedAngle); 
   }
   
   delay(1);
 
   //return map(currentSteeringUS, MIN_TURN_MS,MAX_TURN_MS,MIN_TURN_Kdegrees,MAX_TURN_Kdegrees); // old settings
 
-  return desiredAngle;
-  //steerAngleUS = computeAngleRight(); // uncomment when testing with sensors
-  //return steerAngleUS;
+  //return desiredAngle;
+  steerAngleUS = computeAngleRight(); // uncomment when testing with sensors
+  return steerAngleUS;
 }
 
 //Private
@@ -78,7 +78,7 @@ void SteeringController::SteeringPID(int32_t input) {
 
 // Outputs a PWM based on input (1ms - 1.85ms)
 void SteeringController::engageSteering(int32_t input) {
-  if (input > MAX_TURN_MS)
+  /*if (input > MAX_TURN_MS)
     input = MAX_TURN_MS;
   else if (input < MIN_TURN_MS)
     input = MIN_TURN_MS;
@@ -88,9 +88,25 @@ void SteeringController::engageSteering(int32_t input) {
       Serial.println(input);
     }
     currentSteeringUS = input;
+  } */
+  
+  if (abs(currentAngle - input) < threshold) {
+    digitalWrite(7, LOW);
+    digitalWrite(6, LOW);
+    steeringMode = 0; // changes here
+  } else if (currentAngle > input) {// left turn
+    digitalWrite(7, HIGH);
+    digitalWrite(6, LOW);
+    steeringMode = 1;
+  } else {//right turn
+    digitalWrite(7, LOW);
+    digitalWrite(6, HIGH);
+    steeringMode = -1;
   }
-  Steer_Servo.writeMicroseconds(input);
+
+  //  Steer_Servo.writeMicroseconds(input);
   delay(1);
+  
 }
 
 // Calculates the angle from left sensor
@@ -107,10 +123,17 @@ int32_t SteeringController::computeAngleLeft() { // issues with sensor
 // Calculates the angle from right sensor
 int32_t SteeringController::computeAngleRight() {
   int32_t val = analogRead(R_SENSE_PIN);
-  val = map(val, Right_Read_at_MIN_TURN, Right_Read_at_MAX_TURN, MIN_TURN_MS, MAX_TURN_MS);
-  /* if(DEBUG){
+  currentAngle = val;
+  //val = map(val, Right_Read_at_MIN_TURN, Right_Read_at_MAX_TURN, MIN_TURN_MS, MAX_TURN_MS);
+  if(DEBUG){
  Serial.print("Right sensor: ");
  Serial.println(val);
- } */
+ } 
   return val;
+}
+
+int16_t SteeringController::getSteeringMode()
+{
+  return  steeringMode;
+
 }
