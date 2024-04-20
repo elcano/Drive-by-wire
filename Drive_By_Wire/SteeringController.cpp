@@ -39,17 +39,27 @@ Current Calibration: (Last Update: May 14, 2023)
 722 - 1500us (middle)
 639 - 1850us (right)
 
+Update 4/18/2024
+770 left
+710 center 
+610 right
+
+Update 4/19/2024 Left Sensor is now working
+630 left
+315 center
+91 right
+
 Main function to call the steering
 */
 int32_t SteeringController::update(int32_t desiredAngle) {
   // desiredAngle = map(desiredAngle, MIN_TURN_Mdegrees, MAX_TURN_Mdegrees, MIN_TURN_MS, MAX_TURN_MS); // old settings
   int32_t mappedAngle = desiredAngle;
 
-  if (desiredAngle > 722) { 
-    mappedAngle = map(desiredAngle, 779, 722, MIN_TURN_MS, 1500); 
-  } else {
-    mappedAngle = map(desiredAngle, 722, 639, 1500, MAX_TURN_MS);
-  }
+  //if (desiredAngle > 722) { 
+    //mappedAngle = map(desiredAngle, 779, 722, MIN_TURN_MS, 1500); 
+  //} else {
+    //mappedAngle = map(desiredAngle, 722, 639, 1500, MAX_TURN_MS);
+  //}
 
   if (USE_PIDS) {
     SteeringPID(mappedAngle);
@@ -62,7 +72,7 @@ int32_t SteeringController::update(int32_t desiredAngle) {
   //return map(currentSteeringUS, MIN_TURN_MS,MAX_TURN_MS,MIN_TURN_Kdegrees,MAX_TURN_Kdegrees); // old settings
 
   //return desiredAngle;
-  steerAngleUS = computeAngleRight(); // uncomment when testing with sensors
+  steerAngleUS = computeAngleLeft(); // uncomment when testing with sensors
   return steerAngleUS;
 }
 
@@ -94,7 +104,7 @@ void SteeringController::engageSteering(int32_t input) {
     digitalWrite(7, LOW);
     digitalWrite(6, LOW);
     steeringMode = 0; // changes here
-  } else if (currentAngle > input) {// left turn
+  } else if (input > currentAngle) {// left turn
     digitalWrite(7, HIGH);
     digitalWrite(6, LOW);
     steeringMode = 1;
@@ -103,6 +113,8 @@ void SteeringController::engageSteering(int32_t input) {
     digitalWrite(6, HIGH);
     steeringMode = -1;
   }
+  Serial.print("Steering Mode: ");
+  Serial.println(steeringMode);
 
   //  Steer_Servo.writeMicroseconds(input);
   delay(1);
@@ -112,11 +124,12 @@ void SteeringController::engageSteering(int32_t input) {
 // Calculates the angle from left sensor
 int32_t SteeringController::computeAngleLeft() { // issues with sensor
   int32_t val = analogRead(L_SENSE_PIN);
-  val = map(val, Left_Read_at_MIN_TURN, Left_Read_at_MAX_TURN, MIN_TURN_MS, MAX_TURN_MS);
-  /*if(DEBUG){
+ // val = map(val, Left_Read_at_MIN_TURN, Left_Read_at_MAX_TURN, MIN_TURN_MS, MAX_TURN_MS);
+  if(DEBUG){
     Serial.print("Left sensor: ");
     Serial.println(val);
-  } */
+  } 
+
   return val;
 }
 

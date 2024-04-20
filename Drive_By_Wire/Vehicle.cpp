@@ -53,7 +53,7 @@ Vehicle::Vehicle() {
 
 #if DBWversion < 4
   // Keep trying to initialize CAN
-  while (!CAN.begin(CAN_500KBPS)) {
+  while (0) { // changed to false For testing purposes CAN.begin(CAN_500KBPS) ReEnable for DBWV4
     if (DEBUG) {
       Serial.println("CAN BUS Shield init fail");
     }
@@ -181,7 +181,7 @@ void Vehicle::initalize(){
   Serial.println(filename);
 
   // Add a header to the file
-  logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal\n"); // added steeringVal (modification)
+  logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal,steeringAngleRight\n"); // added steeringVal (modification)
   logfile.flush();
 
 }
@@ -423,6 +423,7 @@ void Vehicle::updateRC() {
     }
 
     currentAngle = steer.update(steerPulse_ms);
+    currentRightAngle = steer.computeAngleRight();
     steeringVal = steer.getSteeringMode();
    // LogMonitor();
     LogSD();
@@ -461,9 +462,11 @@ void Vehicle::LogSD(){
   logfile.print(",");
   logfile.print(steerPulse_ms);
   logfile.print(",");
-  logfile.println(brakeHold);
+  logfile.print(brakeHold);
   logfile.print(",");
-  logfile.println(steeringVal);
+  logfile.print(steeringVal);
+  logfile.print(",");
+  logfile.println(currentRightAngle);
   logfile.flush();  // Flush the file to make sure data is written immediately
 }
 
