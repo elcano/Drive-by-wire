@@ -2,7 +2,7 @@
 #define _DBW_PINS_
 
 #define DEBUG true
-#define USE_PIDS false
+#define USE_PIDS false // throttle currently uses a PID controller, Steering does not current use a PID controller
 
 #include <Arduino.h>
 

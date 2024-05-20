@@ -61,11 +61,11 @@ int32_t SteeringController::update(int32_t desiredAngle) {
     //mappedAngle = map(desiredAngle, 722, 639, 1500, MAX_TURN_MS);
   //}
 
-  if (USE_PIDS) {
-    SteeringPID(mappedAngle);
-  } else {
+  //if (USE_PIDS) {
+    //SteeringPID(mappedAngle);
+  //} else {
     engageSteering(mappedAngle); 
-  }
+  //}
   
   delay(1);
 

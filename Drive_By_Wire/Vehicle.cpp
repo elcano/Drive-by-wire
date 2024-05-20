@@ -160,7 +160,8 @@ void Vehicle::initalize(){
   Serial.println("card initialized.");
 
   // create a new file
-  char filename[] = "LOGGER00.CSV";
+  
+  /*char filename[] = "LOGGER00.CSV";
   for (uint8_t i = 0; i < 100; i++) {
     filename[6] = i / 10 + '0';
     filename[7] = i % 10 + '0';
@@ -172,6 +173,25 @@ void Vehicle::initalize(){
       break;  // leave the loop!
     }
   }
+  */
+   // create a new file
+
+  char filename[] = "MM_DD_00.CSV";
+
+  filename[0] = tm.Month / 10 + '0';
+  filename[1] = tm.Month % 10 + '0';
+
+  filename[3] = tm.Day / 10 + '0';
+  filename[4] = tm.Day % 10 + '0';
+
+  int i = 1;
+  do {
+    //file number 27-28
+    filename[6] = i / 10 + '0';
+    filename[7] = i % 10 + '0';
+    i++;
+  } while (SD.exists(filename) && (i < 100));
+  logfile = SD.open(filename, FILE_WRITE);
 
   if (!logfile) {
     error("file unable to open!");
