@@ -37,10 +37,12 @@ File logfile;
   int16_t currentSpeed;
   int16_t currentBrake;
   int16_t currentAngle;
+  int16_t currentRightAngle;
+
   int brakeHold; // Hold brakes with 12V 
   long throttlePulse_ms;
   long steerPulse_ms;
-
+  int16_t steeringVal; // new val
   void recieveCan();
   void initalize(); 
   void error(char *str);

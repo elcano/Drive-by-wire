@@ -43,6 +43,7 @@ void RC_Controller::mapValues() {
 
 // Maps value into steering
 // 779 (Left - 1020 us), 722 (Straight - 1440us), 639 (Right - 1860us)
+// new Values for Left angle sensor 630 (Left - 1000 us), 315 (Straight - 1440us), 91 (Right - 1996us)
 void RC_Controller::mapSteering() {
   unsigned long currentTime = micros();
 
@@ -57,10 +58,10 @@ void RC_Controller::mapSteering() {
 
     // filtering pulse widths
     if (prevSteering == pulseWidth) {
-      if (pulseWidth > 1500) {  // calibrated steering values
-        steeringValue = map(pulseWidth, 1012, 1440, 779, 722);
+      if (pulseWidth < 1440) {  // calibrated steering values
+        steeringValue = map(pulseWidth, 1000, 1440, 630, 315);
       } else {
-        steeringValue = map(pulseWidth, 1440, 1860, 722, 639);
+        steeringValue = map(pulseWidth, 1440, 1996, 91, 315);
       }
       RC_VALUES_MAPPED[RC_CH1_STEERING] = steeringValue;
     }
