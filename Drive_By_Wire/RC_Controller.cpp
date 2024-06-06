@@ -55,14 +55,14 @@ void RC_Controller::mapSteering() {
     if (pulseWidth < 1000 || pulseWidth > 2000) {  // invalid data, out of range
       return;
     }
-
     // filtering pulse widths
     if (prevSteering == pulseWidth) {
-      if (pulseWidth < 1440) {  // calibrated steering values
-        steeringValue = map(pulseWidth, 1000, 1440, 630, 315);
-      } else {
-        steeringValue = map(pulseWidth, 1440, 1996, 91, 315);
-      }
+      //if (pulseWidth < 1440) {  // calibrated steering values
+        //steeringValue = map(pulseWidth, 1000, 1500, 600, 315);
+      //} else {
+        //steeringValue = map(pulseWidth, 1500, 2000, 83, 315);
+      //}
+      steeringValue = map(pulseWidth, 1000, 2000, 83, 600);
       RC_VALUES_MAPPED[RC_CH1_STEERING] = steeringValue;
     }
 

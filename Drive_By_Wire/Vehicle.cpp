@@ -93,6 +93,7 @@ void Vehicle::initalize(){
   bool config=false;
 
   // get the date and time the compiler was run
+  
   if (getDate(__DATE__) && getTime(__TIME__)) {
     parse = true;
     // and configure the RTC with this info
