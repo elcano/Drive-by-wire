@@ -7,6 +7,7 @@
 #include <TimeLib.h> 
 #include <SD.h>
 #include <stdio.h>
+#include "DBW_Pins.h"
 
 #if DBWversion >= 4
 // Only for Arduino Due
@@ -18,10 +19,10 @@ extern tmElements_t tm;
 
 class Vehicle {
 private:
-  static Brakes brake;
-  static ThrottleController throttle;
+  Brakes brake;
+  ThrottleController throttle;
   SteeringController steer;
-  static RC_Controller RC;
+  RC_Controller RC;
 
 File logfile;
 

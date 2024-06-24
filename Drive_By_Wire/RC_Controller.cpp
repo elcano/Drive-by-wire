@@ -43,7 +43,7 @@ void RC_Controller::mapValues() {
 
 // Maps value into steering
 // 779 (Left - 1020 us), 722 (Straight - 1440us), 639 (Right - 1860us)
-// new Values for Left angle sensor 630 (Left - 1000 us), 315 (Straight - 1440us), 91 (Right - 1996us)
+// new Values for Left angle sensor 630 (Left - 1020 us), 315 (Straight - 1440us), 91 (Right - 1860us)
 void RC_Controller::mapSteering() {
   unsigned long currentTime = micros();
 
@@ -55,14 +55,14 @@ void RC_Controller::mapSteering() {
     if (pulseWidth < 1000 || pulseWidth > 2000) {  // invalid data, out of range
       return;
     }
+
     // filtering pulse widths
     if (prevSteering == pulseWidth) {
-      //if (pulseWidth < 1440) {  // calibrated steering values
-        //steeringValue = map(pulseWidth, 1000, 1500, 600, 315);
-      //} else {
-        //steeringValue = map(pulseWidth, 1500, 2000, 83, 315);
-      //}
-      steeringValue = map(pulseWidth, 1000, 2000, 83, 600);
+      if (pulseWidth > 1500) {  // calibrated steering values
+        steeringValue = map(pulseWidth, 1012, 1440, 630, 315);
+      } else {
+        steeringValue = map(pulseWidth, 1440, 1860, 315, 91);
+      }
       RC_VALUES_MAPPED[RC_CH1_STEERING] = steeringValue;
     }
 
@@ -94,6 +94,8 @@ void RC_Controller::mapThrottleBrake() {
       } else if(pulseWidth >= 1500) {                                                    // throttle
         int throttleValue = map(pulseWidth, 1500, 2000, 0, 120);  // maximum to 120 counts, increase if needed
         RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = throttleValue;
+      } else {  // set throttle to 0
+        RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = 0;
       }
     }
 

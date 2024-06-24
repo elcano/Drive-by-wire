@@ -9,7 +9,8 @@
 #include <stdio.h>
 
 #include <Arduino.h>
-#include "DBW_Pins.h"
+
+
 #if DBWversion < 4
 // Only for Arduino Mega
 #include <mcp2515_can.h>     // CAN_BUS_shield library
@@ -25,11 +26,11 @@ tmElements_t tm;
 const int chipSelect  = 53; //chipSelect pin for the SD card Reader
 
 
+// Breaks when compiling with due Seems not to be used anywhere in the code
+//RC_Controller Vehicle::RC;
+//Brakes Vehicle::brake;
+//ThrottleController Vehicle::throttle;
 
-RC_Controller Vehicle::RC;
-
-Brakes Vehicle::brake;
-ThrottleController Vehicle::throttle;
 #if DBWversion < 4
 mcp2515_can CAN(CAN_SS_PIN);  // pin for CS on Mega
 #endif
@@ -41,6 +42,7 @@ volatile int16_t Vehicle::desired_angle;
 /****************************************************************************
    Constructor
  ****************************************************************************/
+ 
 Vehicle::Vehicle() {
   // Intialize default values
   currentSpeed = 0;
@@ -53,7 +55,7 @@ Vehicle::Vehicle() {
 
 #if DBWversion < 4
   // Keep trying to initialize CAN
-  while (0) { // changed to false For testing purposes CAN.begin(CAN_500KBPS) ReEnable for DBWV4
+  while (CAN.begin(CAN_500KBPS)) { // changed to false For testing purposes CAN.begin(CAN_500KBPS) ReEnable for DBWV4
     if (DEBUG) {
       Serial.println("CAN BUS Shield init fail");
     }
@@ -61,15 +63,13 @@ Vehicle::Vehicle() {
   }
   if (DEBUG)
     Serial.println("CAN BUS init ok!");
-
 #else  // Due
-  if (!Can0.begin(CAN_BPS_500K))  // initalize CAN with 500kbps baud rate
+ if (!Can0.init(CAN_BPS_500K))  // initalize CAN with 500kbps baud rate
   {
     Serial.println("Can0 init success");
   } else {
     Serial.println("Can0 init failed");
   }
-
 #endif  // DBWversion
   //attachPCINT(digitalPinToPCINT(IRPT_ESTOP_PIN), eStop, RISING);
   //attachPCINT(digitalPinToPCINT(IRPT_CAN_PIN), recieveCan, RISING);
@@ -267,10 +267,10 @@ void Vehicle::update() {
     }
   }
 #else  // Due
-  outgoing.data.int16[0] = MSG.sspeed;
-  outgoing.data.int16[1] = MSG.brake;
-  outgoing.data.int16[2] = MSG.angle;
-  outgoing.data.int16[3] = MSG.reserved;
+  outgoing.data.s0 = MSG.sspeed;
+  outgoing.data.s1 = MSG.brake;
+  outgoing.data.s2 = MSG.angle;
+  outgoing.data.s3 = MSG.reserved;
   Can0.sendFrame(outgoing);
 
   if (DEBUG) {
@@ -377,12 +377,12 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
     }
 
     // SPEED IN mm/s
-    int16_t low_result = incoming.data.int16[0];
+    int16_t low_result = incoming.data.s0;
     desired_speed_mmPs = low_result;
 
 
     // BRAKE ON/OFF
-    int16_t mid_result = incoming.data.int16[1];
+    int16_t mid_result = incoming.data.s1;
     desired_brake = mid_result;
     if (desired_brake > 0 && brakeHold == 0) {  // Activate Brakes
       eStop();
@@ -394,7 +394,7 @@ void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC i
     }
 
     // WHEEL ANGLE
-    int16_t high_result = incoming.data.int16[2];
+    int16_t high_result = incoming.data.s2;
     desired_angle = high_result;
 
     if (DEBUG) {

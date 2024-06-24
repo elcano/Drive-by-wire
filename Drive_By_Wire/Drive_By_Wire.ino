@@ -7,6 +7,7 @@
 #include <SPI.h>
 #include "Vehicle.h"
 
+
 #define baud 115200  // baudrate for debugging with a host PC over USB serial
 
 Vehicle *myTrike;
@@ -20,9 +21,10 @@ uint32_t delayTime;
 
 void setup() {
   Serial.begin(baud);
-  if (DEBUG) {
+  if (1) {
     Serial.println("main Setup complete");
   }
+  pinMode(LED_BUILTIN,OUTPUT);
   myTrike = new Vehicle();
 }
 
@@ -30,7 +32,6 @@ void loop() {
   //Timing code
   nextTime = nextTime + LOOP_TIME_MS;
   uint32_t timeStart_ms = millis();
-
   //myTrike->update();
   myTrike->updateRC();
 
@@ -48,4 +49,5 @@ void loop() {
   }
   if (delayTime > 0UL)
     delay(delayTime);
+  
 }

@@ -84,7 +84,7 @@ int32_t ThrottleController::update(int32_t dSpeed) {
   if (DEBUG)
     Serial.println("mm Speed: " + String(speedCyclometerInput_mmPs));
   //return speedCyclometerInput_mmPs;
-  return dSpeed;
+  return speedCyclometerInput_mmPs;
 }
 
 
@@ -186,7 +186,7 @@ void ThrottleController::engageThrottle(int32_t input) {
   if (DEBUG)
     Serial.println("MAPPED speed: " + String(input));
 
-  if (input != currentThrottlePWM) {
+ /* if (input != currentThrottlePWM) {
     if (input > 255) {
       input = 255;
     } else if (input < 0) {
@@ -196,6 +196,26 @@ void ThrottleController::engageThrottle(int32_t input) {
     noInterrupts();
     write(DAC_CHANNEL, input);
     currentThrottlePWM = input;  // Remember most recent throttle PWM value.
+    interrupts();
+  } */
+
+  // Ensure input is within range
+  if (input > 255) {
+    input = 255;
+  } else if (input < 0) {
+    input = 0;
+  }
+
+  // if input is 0, reset throttle
+  if (input == 0) {
+    noInterrupts();
+    write(DAC_CHANNEL, 0);
+    currentThrottlePWM = 0;
+    interrupts();
+  } else if (input != currentThrottlePWM) { // only updates if val has changed
+    noInterrupts();
+    write(DAC_CHANNEL, input);
+    currentThrottlePWM = input; // recent PWM throttle value
     interrupts();
   }
 }

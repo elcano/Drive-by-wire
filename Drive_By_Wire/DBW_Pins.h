@@ -7,7 +7,7 @@
 #include <Arduino.h>
 
 //Version can be 1,3 or 4; LLB = Low Level Board = Drive By Wire
-#define DBWversion 3
+#define DBWversion 4
 
 /*---------- Version 1 - No Longer supported------------------------
 #if DBWversion == 1
@@ -142,7 +142,7 @@
 // Pin used to steer the vehicle with a pulse
 #define STEER_PULSE_PIN     26
 // Relay that turns on power to the steering system
-#define STEER_ON_PIN        D28
+#define STEER_ON_PIN        28
 // Debug or status for DBW
 #define DBW_LED             30
  // keep-alive watchdog is not yet implemented
