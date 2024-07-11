@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include <Arduino.h>
+#include <Adafruit_GPS.h>
 
 
 #if DBWversion < 4
@@ -55,7 +56,7 @@ Vehicle::Vehicle() {
 
 #if DBWversion < 4
   // Keep trying to initialize CAN
-  while (CAN.begin(CAN_500KBPS)) { // changed to false For testing purposes CAN.begin(CAN_500KBPS) ReEnable for DBWV4
+  while (!CAN.begin(CAN_500KBPS)) { // changed to false For testing purposes CAN.begin(CAN_500KBPS) ReEnable for DBWV4
     if (DEBUG) {
       Serial.println("CAN BUS Shield init fail");
     }
@@ -64,7 +65,7 @@ Vehicle::Vehicle() {
   if (DEBUG)
     Serial.println("CAN BUS init ok!");
 #else  // Due
- if (!Can0.init(CAN_BPS_500K))  // initalize CAN with 500kbps baud rate
+ if (Can0.begin(CAN_BPS_500K,255))  // initalize CAN with 500kbps baud rate and no enable pins 
   {
     Serial.println("Can0 init success");
   } else {
@@ -89,6 +90,70 @@ Initilze SD Card
 ******************/ 
 
 void Vehicle::initalize(){
+  delay(100);
+  #if DBWversion > 3
+    /*
+    #define GPSSerial Serial1
+    Adafruit_GPS GPS(&GPSSerial);
+    
+    // initialize the GPS
+    GPS.begin(9600);
+    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ); // setting the update rate to 1 hz
+    delay(1000);
+    Serial.println("GPS has been initialized");
+   
+    long gpsStart = micros();
+    
+    char c = GPS.read();
+    while((micros() - gpsStart) <= 2000000)
+    {
+      if(GPS.newNMEAreceived()) {
+        GPS.parse(GPS.lastNMEA());
+        
+      }
+      GPS.read();
+      
+    
+      //Serial.print(GPS.lastNMEA());
+    }
+    
+    
+    Serial.print("Compile Date: ");
+    Serial.println(__DATE__);
+    Serial.print("Compile Time: ");
+    Serial.println(__TIME__);
+    Serial.print("\nDate: ");
+    Serial.print((GPS.day<10)?"0":"");
+    Serial.print(GPS.day, DEC);              //DD
+    Serial.print("/");
+    Serial.print((GPS.month<10)?"0":""); 
+    Serial.print(GPS.month, DEC);            //MM
+    Serial.print("/20");
+    Serial.println(GPS.year, DEC);           //YYYY
+
+    Serial.print("\nTime: ");
+    if (GPS.hour < 10) { Serial.print('0'); }
+    Serial.print(GPS.hour, DEC); Serial.print(':');
+    if (GPS.minute < 10) { Serial.print('0'); }
+    Serial.print(GPS.minute, DEC); Serial.print(':');
+    if (GPS.seconds < 10) { Serial.print('0'); }
+    Serial.print(GPS.seconds, DEC); Serial.print('.');
+    if (GPS.milliseconds < 10) {
+      Serial.print("00");
+    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
+      Serial.print("0");
+    }
+    Serial.println("\n");
+    /* Serial.println(GPS.milliseconds);
+    Serial.print("Date: ");
+    Serial.print(GPS.day, DEC); Serial.print('/');
+    Serial.print(GPS.month, DEC); Serial.print("/20");
+    Serial.println(GPS.year, DEC); */
+    
+  #else
+  
+  
   bool parse=false;
   bool config=false;
 
@@ -142,9 +207,11 @@ void Vehicle::initalize(){
     }
     //delay(9000);
   }
+#endif
  // delay(2000);
 
-
+#if DBWversion < 4
+// SPI pins on due need to soldered to the shield pins in order to log
 // initialize the SD card
   Serial.print("Initializing SD card...");
 
@@ -159,6 +226,7 @@ void Vehicle::initalize(){
     return;
   }
   Serial.println("card initialized.");
+#endif 
 
   // create a new file
   
@@ -176,7 +244,7 @@ void Vehicle::initalize(){
   }
   */
    // create a new file
-
+#if DBWversion < 4
   char filename[] = "MM_DD_00.CSV";
 
   filename[0] = tm.Month / 10 + '0';
@@ -204,7 +272,7 @@ void Vehicle::initalize(){
   // Add a header to the file
   logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal,steeringAngleRight\n"); // added steeringVal (modification)
   logfile.flush();
-
+#endif
 }
 
 /*****************************************************************************
@@ -447,7 +515,9 @@ void Vehicle::updateRC() {
     currentRightAngle = steer.computeAngleRight();
     steeringVal = steer.getSteeringMode();
    // LogMonitor();
+   #if DBWversion <4 // Current DUE board layout does not support logging
     LogSD();
+   #endif
   }
   RC.clearFlag();
 }
@@ -465,6 +535,7 @@ void Vehicle::LogMonitor() {
 
 void Vehicle::LogSD(){
  // Log data to the file
+ #if DBWversion < 4
   logfile.print(millis());
   logfile.print(",");
   logfile.print(desired_speed_mmPs);
@@ -489,6 +560,7 @@ void Vehicle::LogSD(){
   logfile.print(",");
   logfile.println(currentRightAngle);
   logfile.flush();  // Flush the file to make sure data is written immediately
+#endif
 }
 
 void Vehicle::error(char *str)
@@ -524,17 +596,17 @@ bool Vehicle::getTime(const char *str)
 
 bool Vehicle::getDate(const char *str)
 {
-  char Month[12];
-  int Day, Year;
-  uint8_t monthIndex;
+    char Month[12];
+    int Day, Year;
+    uint8_t monthIndex;
 
-  if (sscanf(str, "%s %d %d", Month, &Day, &Year) != 3) return false;
-  for (monthIndex = 0; monthIndex < 12; monthIndex++) {
-    if (strcmp(Month, monthName[monthIndex]) == 0) break;
-  }
-  if (monthIndex >= 12) return false;
-  tm.Day = Day;
-  tm.Month = monthIndex + 1;
-  tm.Year = CalendarYrToTm(Year);
+    if (sscanf(str, "%s %d %d", Month, &Day, &Year) != 3) return false;
+    for (monthIndex = 0; monthIndex < 12; monthIndex++) {
+      if (strcmp(Month, monthName[monthIndex]) == 0) break;
+    }
+    if (monthIndex >= 12) return false;
+    tm.Day = Day;
+    tm.Month = monthIndex + 1;
+    tm.Year = CalendarYrToTm(Year);
   return true;
 }

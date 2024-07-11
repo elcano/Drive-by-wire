@@ -8,6 +8,7 @@
 #include <SD.h>
 #include <stdio.h>
 #include "DBW_Pins.h"
+#include <Adafruit_GPS.h>
 
 #if DBWversion >= 4
 // Only for Arduino Due

@@ -13,8 +13,8 @@
 #define THROTTLE_BR_CH2_PIN 19  
 
 #else  // Due
-#define STEERING_CH1_PIN 8  
-#define THROTTLE_BR_CH2_PIN 9  
+#define STEERING_CH1_PIN 48
+#define THROTTLE_BR_CH2_PIN 46  
 #endif
 
 class RC_Controller {
