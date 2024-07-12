@@ -91,8 +91,12 @@ void RC_Controller::mapThrottleBrake() {
       if (pulseWidth < 1100) {  // brakes
         RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = -1;
         Serial.println("Throttle:" + String(pulseWidth));
-      } else if(pulseWidth >= 1500) {                                                    // throttle
-        int throttleValue = map(pulseWidth, 1500, 2000, 0, 120);  // maximum to 120 counts, increase if needed
+      } else if(pulseWidth >= 1500) {  
+        int throttleValue;    
+            
+                                                  // throttle
+        throttleValue = map(pulseWidth, 1500, 2000, 0, 120);  // maximum to 120 counts, increase if needed 
+        
         RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = throttleValue;
       } else {  // set throttle to 0
         RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = 0;
@@ -100,6 +104,8 @@ void RC_Controller::mapThrottleBrake() {
     }
 
     Serial.println("Throttle:" + String(pulseWidth));
+    //Serial.println(RC_VALUES_MAPPED[1]);
+    delay(10);
     previousTime[RC_CH2_THROTTLE_BR] = currentTime;  // update time
     prevThrottleBrake = pulseWidth;                  // throttle or brake
     throttleBrakeFlag = 1;                           // valid data

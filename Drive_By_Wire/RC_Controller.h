@@ -8,10 +8,9 @@
 #define RC_CH2_THROTTLE_BR 1  
 
 // Channel Pins on RC
-#if DBWversion < 4
+#if DBWversion == 3
 #define STEERING_CH1_PIN 18  
 #define THROTTLE_BR_CH2_PIN 19  
-
 #else  // Due
 #define STEERING_CH1_PIN 48
 #define THROTTLE_BR_CH2_PIN 46  
