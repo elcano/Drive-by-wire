@@ -27,6 +27,7 @@ private:
   void computeSpeed();
   void engageThrottle(int32_t input);
   static void tick();
+  bool startup;
 public:
 
   ThrottleController();

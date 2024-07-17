@@ -151,7 +151,7 @@
 // Switch to drive in forward or reverse; not used
 #define FWDSW_PIN          36
 #define BUZZER_PIN         38  // Not used
-#define BrakeOnPin         39
+#define BrakeOnPin         44
 // Brakes, have relays for both on/off as well as selecting 12/24v power.
 #define BrakeVoltPin       40
 

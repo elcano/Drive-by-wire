@@ -211,11 +211,20 @@ void ThrottleController::engageThrottle(int32_t input) {
     noInterrupts();
     write(DAC_CHANNEL, 0);
     currentThrottlePWM = 0;
+    startup = false;
     interrupts();
-  } else if (input != currentThrottlePWM) { // only updates if val has changed
+  } else if ((input != currentThrottlePWM) && (startup == true)) { // only updates if val has changed
     noInterrupts();
     write(DAC_CHANNEL, input);
     currentThrottlePWM = input; // recent PWM throttle value
+    interrupts();
+  }
+  else if(startup == false)
+  {
+    noInterrupts();
+    write(DAC_CHANNEL, 255);
+    currentThrottlePWM = 255 ; // recent PWM throttle value
+    startup = true;
     interrupts();
   }
 }

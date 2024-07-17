@@ -37,7 +37,7 @@
      *  You shoud hear a click when the relay operates.
      *  If there is a change in LED, but no click, the relay does not have enough power.
      */
-#define RELAYInversion false
+#define RELAYInversion true
 
 class Brakes {
 public:
