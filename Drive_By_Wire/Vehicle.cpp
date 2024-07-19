@@ -91,67 +91,7 @@ Initilze SD Card
 
 void Vehicle::initalize(){
   delay(100);
-  #if DBWversion > 3
-    /*
-    #define GPSSerial Serial1
-    Adafruit_GPS GPS(&GPSSerial);
-    
-    // initialize the GPS
-    GPS.begin(9600);
-    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ); // setting the update rate to 1 hz
-    delay(1000);
-    Serial.println("GPS has been initialized");
-   
-    long gpsStart = micros();
-    
-    char c = GPS.read();
-    while((micros() - gpsStart) <= 2000000)
-    {
-      if(GPS.newNMEAreceived()) {
-        GPS.parse(GPS.lastNMEA());
-        
-      }
-      GPS.read();
-      
-    
-      //Serial.print(GPS.lastNMEA());
-    }
-    
-    
-    Serial.print("Compile Date: ");
-    Serial.println(__DATE__);
-    Serial.print("Compile Time: ");
-    Serial.println(__TIME__);
-    Serial.print("\nDate: ");
-    Serial.print((GPS.day<10)?"0":"");
-    Serial.print(GPS.day, DEC);              //DD
-    Serial.print("/");
-    Serial.print((GPS.month<10)?"0":""); 
-    Serial.print(GPS.month, DEC);            //MM
-    Serial.print("/20");
-    Serial.println(GPS.year, DEC);           //YYYY
-
-    Serial.print("\nTime: ");
-    if (GPS.hour < 10) { Serial.print('0'); }
-    Serial.print(GPS.hour, DEC); Serial.print(':');
-    if (GPS.minute < 10) { Serial.print('0'); }
-    Serial.print(GPS.minute, DEC); Serial.print(':');
-    if (GPS.seconds < 10) { Serial.print('0'); }
-    Serial.print(GPS.seconds, DEC); Serial.print('.');
-    if (GPS.milliseconds < 10) {
-      Serial.print("00");
-    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
-      Serial.print("0");
-    }
-    Serial.println("\n");
-    /* Serial.println(GPS.milliseconds);
-    Serial.print("Date: ");
-    Serial.print(GPS.day, DEC); Serial.print('/');
-    Serial.print(GPS.month, DEC); Serial.print("/20");
-    Serial.println(GPS.year, DEC); */
-    
-  #else
+  
   
   
   bool parse=false;
@@ -207,26 +147,26 @@ void Vehicle::initalize(){
     }
     //delay(9000);
   }
-#endif
+
  // delay(2000);
 
-#if DBWversion < 4
+
 // SPI pins on due need to soldered to the shield pins in order to log
 // initialize the SD card
   Serial.print("Initializing SD card...");
 
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
-  pinMode(53, OUTPUT);
+  pinMode(10, OUTPUT);
 
   // see if the card is present and can be initialized:
-  if (!SD.begin(53)) {
+  if (!SD.begin(10)) {
     Serial.println("Card failed, or not present");
     // don't do anything more:
     return;
   }
   Serial.println("card initialized.");
-#endif 
+
 
   // create a new file
   
@@ -244,7 +184,7 @@ void Vehicle::initalize(){
   }
   */
    // create a new file
-#if DBWversion < 4
+
   char filename[] = "MM_DD_00.CSV";
 
   filename[0] = tm.Month / 10 + '0';
@@ -272,7 +212,7 @@ void Vehicle::initalize(){
   // Add a header to the file
   logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal,steeringAngleRight\n"); // added steeringVal (modification)
   logfile.flush();
-#endif
+
 }
 
 /*****************************************************************************

@@ -17,7 +17,7 @@ ThrottleController::ThrottleController()
   calcTime_ms[0] = 0;
   calcTime_ms[1] = 0;
   prevSpeed_mmPs = 0;
-
+  timeSinceStartup = 0;
 #if DBWversion < 4
   // Only for Arduino Mega
   pinMode(DAC_SS_PIN, OUTPUT);
@@ -212,19 +212,21 @@ void ThrottleController::engageThrottle(int32_t input) {
     write(DAC_CHANNEL, 0);
     currentThrottlePWM = 0;
     startup = false;
+    timeSinceStartup = 0;
     interrupts();
-  } else if ((input != currentThrottlePWM) && (startup == true)) { // only updates if val has changed
+  } else if ((input != currentThrottlePWM) && (startup == true) && ( (millis() - timeSinceStartup) > 250 )) { // only updates if val has changed
     noInterrupts();
     write(DAC_CHANNEL, input);
     currentThrottlePWM = input; // recent PWM throttle value
     interrupts();
   }
-  else if(startup == false)
+  else if((startup == false) && (timeSinceStartup == 0))
   {
     noInterrupts();
     write(DAC_CHANNEL, 255);
     currentThrottlePWM = 255 ; // recent PWM throttle value
     startup = true;
+    timeSinceStartup = millis();
     interrupts();
   }
 }
