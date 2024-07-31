@@ -11,6 +11,9 @@
 #include <Arduino.h>
 #include <Adafruit_GPS.h>
 
+RTC_PCF8523 rtc;
+DateTime currentNow;
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 #if DBWversion < 4
 // Only for Arduino Mega
@@ -24,7 +27,7 @@ const char *monthName[12] = {
 };
 tmElements_t tm;
 
-const int chipSelect  = 53; //chipSelect pin for the SD card Reader
+const int chipSelect = 10; //chipSelect pin for the SD card Reader
 
 
 // Breaks when compiling with due Seems not to be used anywhere in the code
@@ -90,25 +93,80 @@ Initilze SD Card
 ******************/ 
 
 void Vehicle::initalize(){
-  delay(100);
+
+#if DBWversion == 4
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+    while (1) delay(10);
+  }
+
+  getDate(__DATE__);
+  getTime(__TIME__);
+
   
+  if(rtc.lostPower() || (tmYearToCalendar(tm.Year) > rtc.now().year()) || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && tm.Month > rtc.now().month()) || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && (tm.Month == rtc.now().month())  && (tm.Day > rtc.now().day()))
+  || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && (tm.Month == rtc.now().month())  && (tm.Day == rtc.now().day()) && (tm.Hour > rtc.now().hour())) 
+  || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && (tm.Month == rtc.now().month())  && (tm.Day == rtc.now().day()) && (tm.Hour == rtc.now().hour()) && (tm.Minute > rtc.now().minute())))
+  {
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  Serial.println("RTC time set to compile time.");
+  rtc.start();
+  }
   
-  
+
+  Serial.print(rtc.now().year());
+  Serial.print('/');
+  Serial.print(rtc.now().month());
+  Serial.print('/');
+  Serial.print(rtc.now().day());
+  Serial.print(" (");
+  Serial.print(daysOfTheWeek[rtc.now().dayOfTheWeek()]);
+  Serial.print(") ");
+  Serial.print(rtc.now().hour() );
+  Serial.print(':');
+  Serial.print(rtc.now().minute() );
+  Serial.print(':');
+  Serial.print(rtc.now().second());
+  if (rtc.now().twelveHour() > 0) {
+    Serial.print(" PM");
+  } else {
+    Serial.print(" AM");
+  }
+  Serial.println();
+
+  float drift = 43; // seconds plus or minus over oservation period - set to 0 to cancel previous calibration.
+  float period_sec = (7 * 86400);  // total obsevation period in seconds (86400 = seconds in 1 day:  7 days = (7 * 86400) seconds )
+  float deviation_ppm = (drift / period_sec * 1000000); //  deviation in parts per million (μs)
+  float drift_unit = 4.34; // use with offset mode PCF8523_TwoHours
+  // float drift_unit = 4.069; //For corrections every min the drift_unit is 4.069 ppm (use with offset mode PCF8523_OneMinute)
+  int offset = round(deviation_ppm / drift_unit);
+  // rtc.calibrate(PCF8523_TwoHours, offset); // Un-comment to perform calibration once drift (seconds) and observation period (seconds) are correct
+  // rtc.calibrate(PCF8523_TwoHours, 0); // Un-comment to cancel previous calibration
+
+  Serial.print("Offset is "); 
+  Serial.println(offset); // Print to control offset
+  Serial.flush();
+#endif 
+
+#if DBWversion < 4
   bool parse=false;
   bool config=false;
 
-  // get the date and time the compiler was run
+  // get the date and time the compiler was run 
   
   if (getDate(__DATE__) && getTime(__TIME__)) {
     parse = true;
     // and configure the RTC with this info
+    config = true;
     if (RTC.write(tm)) {
       config = true;
     }
   }
 
+
   if (parse && config) {
-    Serial.print("DS1307 configured Time=");
+    Serial.print("DS1307 configured Time = ");
     Serial.print(__TIME__);
     Serial.print(", Date=");
     Serial.println(__DATE__);
@@ -122,7 +180,7 @@ void Vehicle::initalize(){
     Serial.print(__DATE__);
     Serial.println("\"");
   }
-      if (RTC.read(tm)) {
+  if (RTC.read(tm)) {
     Serial.print("Ok, Time = ");
     print2digits(tm.Hour);
     Serial.write(':');
@@ -136,21 +194,9 @@ void Vehicle::initalize(){
     Serial.write('/');
     Serial.print(tmYearToCalendar(tm.Year));
     Serial.println();
-  } else {
-    if (RTC.chipPresent()) {
-      Serial.println("The DS1307 is stopped.  Please run the SetTime");
-      Serial.println("example to initialize the time and begin running.");
-      Serial.println();
-    } else {
-      Serial.println("DS1307 read error!  Please check the circuitry.");
-      Serial.println();
-    }
-    //delay(9000);
-  }
+  } 
 
- // delay(2000);
-
-
+#endif
 // SPI pins on due need to soldered to the shield pins in order to log
 // initialize the SD card
   Serial.print("Initializing SD card...");
@@ -168,30 +214,17 @@ void Vehicle::initalize(){
   Serial.println("card initialized.");
 
 
-  // create a new file
   
-  /*char filename[] = "LOGGER00.CSV";
-  for (uint8_t i = 0; i < 100; i++) {
-    filename[6] = i / 10 + '0';
-    filename[7] = i % 10 + '0';
-    if (!SD.exists(filename)) {
-      Serial.print("File does not exist. New file name:");
-      Serial.println(filename);
-      // only open a new file if it doesn't exist
-      logfile = SD.open(filename, FILE_WRITE);
-      break;  // leave the loop!
-    }
-  }
-  */
-   // create a new file
 
   char filename[] = "MM_DD_00.CSV";
+  
+  DateTime logger;
+  logger = rtc.now();
+  filename[0] = logger.month() / 10 + '0';
+  filename[1] = logger.month() % 10 + '0';
 
-  filename[0] = tm.Month / 10 + '0';
-  filename[1] = tm.Month % 10 + '0';
-
-  filename[3] = tm.Day / 10 + '0';
-  filename[4] = tm.Day % 10 + '0';
+  filename[3] = logger.day() / 10 + '0';
+  filename[4] = logger.day() % 10 + '0';
 
   int i = 1;
   do {
@@ -209,10 +242,34 @@ void Vehicle::initalize(){
   Serial.print("Logging to: ");
   Serial.println(filename);
 
-  // Add a header to the file
-  logfile.print("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal,steeringAngleRight\n"); // added steeringVal (modification)
-  logfile.flush();
+  Serial.flush();
 
+  DateTime now;
+  now = rtc.now();
+
+  logfile.print(now.year(), DEC);
+  logfile.print('/');
+  logfile.print(now.month() / 10, DEC);  logfile.print(now.month() % 10, DEC);
+  logfile.print('/');
+  logfile.print(now.day() / 10, DEC);  logfile.print(now.day() % 10, DEC);
+  logfile.print(" (");
+  logfile.print(daysOfTheWeek[now.dayOfTheWeek()]);
+  logfile.print(") ");
+  logfile.print((now.hour() % 12) / 10, DEC);  logfile.print((now.hour() % 12) % 10, DEC);
+  logfile.print(':');
+  logfile.print(now.minute() / 10, DEC);  logfile.print(now.minute() % 10, DEC);
+  logfile.print(':');
+  logfile.print(now.second() / 10, DEC);  logfile.print(now.second() % 10, DEC);
+  if (now.twelveHour() > 0) {
+    logfile.print(" PM");
+  } else {
+    logfile.print(" AM");
+  }
+  logfile.println();
+
+  logfile.print("epoch_time_s,time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal,steeringAngleRight\n"); // added steeringVal (modification)
+  logfile.flush();
+  
 }
 
 /*****************************************************************************
@@ -454,28 +511,36 @@ void Vehicle::updateRC() {
     currentAngle = steer.update(steerPulse_ms);
     currentRightAngle = steer.computeAngleRight();
     steeringVal = steer.getSteeringMode();
-   // LogMonitor();
-   #if DBWversion <4 // Current DUE board layout does not support logging
+    LogMonitor();
     LogSD();
-   #endif
   }
   RC.clearFlag();
 }
 void Vehicle::LogMonitor() {
+ // Serial.flush();
   Serial.print(desired_speed_mmPs);  Serial.print(", ");
+//  Serial.flush();
   Serial.print(desired_brake);  Serial.print(", ");
+//  Serial.flush();
   Serial.print(desired_angle);  Serial.print(", ");
+ // Serial.flush();
   Serial.print(currentSpeed);  Serial.print(", ");
+ // Serial.flush();
   Serial.print(currentBrake);  Serial.print(", ");
+ // Serial.flush();
   Serial.print(currentAngle);  Serial.print(", ");
+ // Serial.flush();
   Serial.println(brakeHold); // Serial.print(", ");
+  Serial.flush();
  // Serial.print(throttlePulse_ms);  Serial.print(", ");
   //Serial.print(steerPulse_ms);  
 }
 
 void Vehicle::LogSD(){
- // Log data to the file
- #if DBWversion < 4
+  DateTime now;
+  now = rtc.now();
+  logfile.print(now.unixtime());
+  logfile.print(",");
   logfile.print(millis());
   logfile.print(",");
   logfile.print(desired_speed_mmPs);
@@ -500,8 +565,9 @@ void Vehicle::LogSD(){
   logfile.print(",");
   logfile.println(currentRightAngle);
   logfile.flush();  // Flush the file to make sure data is written immediately
-#endif
 }
+
+
 
 void Vehicle::error(char *str)
 {
