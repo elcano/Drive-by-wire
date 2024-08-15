@@ -2,6 +2,8 @@
  *  Accept commands over CAN bus
  *  Implement vehicle throttle, brakes and steering as commanded
  *  Report status over CAN bus
+ *  Current State Summer 2024
+ *  Both trikes are operational while being controlled with the RC controller and the CAN commands need to be integrated with the current hardware.
  */
 #include "DBW_Pins.h"
 #include <SPI.h>
