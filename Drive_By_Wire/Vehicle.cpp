@@ -11,7 +11,7 @@
 #include <Arduino.h>
 #include <Adafruit_GPS.h>
 
-RTC_PCF8523 rtc;
+RTC_PCF8523 rtc; // Adafruit SD datalogger for Arduino DUE
 DateTime currentNow;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
@@ -95,7 +95,7 @@ Initilze SD Card
 void Vehicle::initalize(){
 
 #if DBWversion == 4
-  if (!rtc.begin()) {
+  if (!rtc.begin()) { // try to communicate with RTC and if unable keep retrying
     Serial.println("Couldn't find RTC");
     Serial.flush();
     while (1) delay(10);
@@ -104,7 +104,7 @@ void Vehicle::initalize(){
   getDate(__DATE__);
   getTime(__TIME__);
 
-  
+  // check if current RTC time is valid and that the compile time is not more recent
   if(rtc.lostPower() || (tmYearToCalendar(tm.Year) > rtc.now().year()) || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && tm.Month > rtc.now().month()) || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && (tm.Month == rtc.now().month())  && (tm.Day > rtc.now().day()))
   || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && (tm.Month == rtc.now().month())  && (tm.Day == rtc.now().day()) && (tm.Hour > rtc.now().hour())) 
   || ((tmYearToCalendar(tm.Year) == rtc.now().year()) && (tm.Month == rtc.now().month())  && (tm.Day == rtc.now().day()) && (tm.Hour == rtc.now().hour()) && (tm.Minute > rtc.now().minute())))
@@ -114,7 +114,7 @@ void Vehicle::initalize(){
   rtc.start();
   }
   
-
+  // prints out date to console during startup
   Serial.print(rtc.now().year());
   Serial.print('/');
   Serial.print(rtc.now().month());
@@ -123,7 +123,7 @@ void Vehicle::initalize(){
   Serial.print(" (");
   Serial.print(daysOfTheWeek[rtc.now().dayOfTheWeek()]);
   Serial.print(") ");
-  if(rtc.now().hour() == 12)
+  if(rtc.now().hour() == 12) 
   {
     Serial.print(rtc.now().hour());
   }
@@ -212,13 +212,12 @@ void Vehicle::initalize(){
   } 
 
 #endif
-// SPI pins on due need to soldered to the shield pins in order to log
 // initialize the SD card
   Serial.print("Initializing SD card...");
 
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
-  pinMode(10, OUTPUT);
+  pinMode(10, OUTPUT);// DBW v4 pin 10 CS 
 
   // see if the card is present and can be initialized:
   if (!SD.begin(10)) {
@@ -231,7 +230,8 @@ void Vehicle::initalize(){
 
   
 
-  char filename[] = "MM_DD_00.CSV";
+  char filename[] = "MM_DD_00.CSV";// default file name replace MM with month and DD with day and 00 with the current file number
+  // this allows for 100 files to be created per day on the SD card due to the 8 character limit on the file names
   
   DateTime logger;
   logger = rtc.now();
@@ -242,7 +242,7 @@ void Vehicle::initalize(){
   filename[4] = logger.day() % 10 + '0';
 
   int i = 1;
-  do {
+  do {// check for unused file name
     //file number 27-28
     filename[6] = i / 10 + '0';
     filename[7] = i % 10 + '0';
@@ -261,7 +261,7 @@ void Vehicle::initalize(){
 
   DateTime now;
   now = rtc.now();
-
+  // print date and time to top of logger file
   logfile.print(now.year(), DEC);
   logfile.print('/');
   logfile.print(now.month(), DEC);
