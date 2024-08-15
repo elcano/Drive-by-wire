@@ -1,3 +1,4 @@
+// TODO Create an automated calibration feature for the wheel hub angles - Summer 2024
 #include <Arduino.h>
 #include "RC_Controller.h"
 #include "Settings.h"
@@ -42,8 +43,6 @@ void RC_Controller::mapValues() {
 }
 
 // Maps value into steering
-// 779 (Left - 1020 us), 722 (Straight - 1440us), 639 (Right - 1860us)
-// new Values for Left angle sensor 630 (Left - 1020 us), 315 (Straight - 1440us), 91 (Right - 1860us)
 void RC_Controller::mapSteering() {
   unsigned long currentTime = micros();
 
@@ -58,6 +57,7 @@ void RC_Controller::mapSteering() {
 
     // filtering pulse widths
     if (prevSteering == pulseWidth) {
+      // Summer 2024 Angle calibration
       // Orange trike
       // Left 460 center 165 right 70
       // yellow trike
