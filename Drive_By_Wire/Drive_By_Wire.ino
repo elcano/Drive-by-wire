@@ -32,8 +32,8 @@ void loop() {
   //Timing code
   nextTime = nextTime + LOOP_TIME_MS;
   uint32_t timeStart_ms = millis();
-  //myTrike->update();
-  myTrike->updateRC();
+  //myTrike->update(); // CAN Bus control
+  myTrike->updateRC(); // RC control
 
   //Timing code
   endTime = millis();
