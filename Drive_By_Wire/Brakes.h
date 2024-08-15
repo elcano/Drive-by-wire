@@ -37,7 +37,8 @@
      *  You shoud hear a click when the relay operates.
      *  If there is a change in LED, but no click, the relay does not have enough power.
      */
-#define RELAYInversion true
+#define RELAYInversion true 
+// this is used to invert the behaivor of the relays to account for DBW v4 relays being wired backwards
 
 class Brakes {
 public:
