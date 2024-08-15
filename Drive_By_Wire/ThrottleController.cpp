@@ -220,7 +220,7 @@ void ThrottleController::engageThrottle(int32_t input) {
     currentThrottlePWM = input; // recent PWM throttle value
     interrupts();
   }
-  else if((startup == false) && (timeSinceStartup == 0))
+  else if((startup == false) && (timeSinceStartup == 0)) // when starting wheel apply max throttle to get wheel moving and prevent coil form getting stuck
   {
     noInterrupts();
     write(DAC_CHANNEL, 255);
