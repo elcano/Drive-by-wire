@@ -11,14 +11,14 @@ SteeringController::SteeringController()
   #if DBWversion == 4 
     digitalWrite(STEER_ON_PIN, HIGH);
   #endif
-  pinMode(23, OUTPUT);
-  pinMode(27,OUTPUT);
+  pinMode(25, OUTPUT);// h-bridge right turn
+  pinMode(27,OUTPUT);// h-bridge left turn
   
-  digitalWrite(23,LOW);
+  digitalWrite(25,LOW);
   digitalWrite(27,LOW);
   
   delay(10);
-  waitCycles = 0;
+  waitCycles = 0;// used to extend delay in turning to prevent problems with the steering board
 
 
   steerPID.SetOutputLimits(MIN_TURN_MS, MAX_TURN_MS);
@@ -58,7 +58,7 @@ Update 4/19/2024 Left Sensor is now working
 
 Main function to call the steering
 */
-int32_t SteeringController::update(int32_t desiredAngle) {
+int32_t SteeringController::update(int32_t desiredAngle) { // Summer 2024 Steering PID is disabled and replaced with basic control system that has a threshold 
   // desiredAngle = map(desiredAngle, MIN_TURN_Mdegrees, MAX_TURN_Mdegrees, MIN_TURN_MS, MAX_TURN_MS); // old settings
   int32_t mappedAngle = desiredAngle;
 
@@ -93,38 +93,26 @@ void SteeringController::SteeringPID(int32_t input) {
   }
 }
 
-// Outputs a PWM based on input (1ms - 1.85ms)
 void SteeringController::engageSteering(int32_t input) {
-  /*if (input > MAX_TURN_MS)
-    input = MAX_TURN_MS;
-  else if (input < MIN_TURN_MS)
-    input = MIN_TURN_MS;
-  if (currentSteeringUS != input) {
-    if (DEBUG) {
-      Serial.print("MAP Steering: ");
-      Serial.println(input);
-    }
-    currentSteeringUS = input;
-  } */
   
   if (abs(currentAngle - input) < threshold) {
     digitalWrite(27, LOW);
     digitalWrite(25, LOW);
-    steeringMode = 0; // changes here
-    waitCycles ++;
+    steeringMode = 0; // no turn indicator 
+    waitCycles ++; 
   } else if (input > currentAngle) {// left turn 
     if(digitalRead(25) == HIGH)// check if turning right and set steering to off before turning left
     {
     digitalWrite(27, LOW);
     digitalWrite(25, LOW);
-    steeringMode = 0; // changes here
+    steeringMode = 0; // no turn indicator
     waitCycles = 0;
     }
     else if(waitCycles >= 5)
     {
     digitalWrite(27, HIGH);
     digitalWrite(25, LOW);
-    steeringMode = 1;
+    steeringMode = 1; // left turn indicator
     
     }
     else
@@ -136,14 +124,14 @@ void SteeringController::engageSteering(int32_t input) {
     {
     digitalWrite(27, LOW);
     digitalWrite(25, LOW);
-    steeringMode = 0; // changes here
+    steeringMode = 0; // no turn indicator
     waitCycles = 0;
     }
     else if(waitCycles >= 5)
     {
     digitalWrite(27, LOW);
     digitalWrite(25, HIGH);
-    steeringMode = -1;
+    steeringMode = -1;// right turn indicator
     
     }
     else
@@ -151,10 +139,11 @@ void SteeringController::engageSteering(int32_t input) {
       waitCycles ++;
     }
   }
-  
+
+  if (DEBUG) {
   Serial.print("Steering Mode: ");
   Serial.println(steeringMode);
-
+  }
   //  Steer_Servo.writeMicroseconds(input);
   delay(1);
   
