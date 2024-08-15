@@ -11,14 +11,21 @@ SteeringController::SteeringController()
   #if DBWversion == 4 
     digitalWrite(STEER_ON_PIN, HIGH);
   #endif
-
+  pinMode(23, OUTPUT);
+  pinMode(27,OUTPUT);
+  
+  digitalWrite(23,LOW);
+  digitalWrite(27,LOW);
+  
+  delay(10);
+  waitCycles = 0;
 
 
   steerPID.SetOutputLimits(MIN_TURN_MS, MAX_TURN_MS);
   steerPID.SetSampleTime(PID_CALCULATE_TIME);
   steerPID.SetMode(AUTOMATIC);
 
-  Steer_Servo.attach(STEER_PULSE_PIN);
+  //Steer_Servo.attach(STEER_PULSE_PIN);
   delay(1);
   //Steer_Servo.write(90);
   if (DEBUG) {
@@ -101,17 +108,48 @@ void SteeringController::engageSteering(int32_t input) {
   } */
   
   if (abs(currentAngle - input) < threshold) {
-    digitalWrite(7, LOW);
-    digitalWrite(6, LOW);
+    digitalWrite(27, LOW);
+    digitalWrite(25, LOW);
     steeringMode = 0; // changes here
+    waitCycles ++;
   } else if (input > currentAngle) {// left turn 
-    digitalWrite(7, LOW);
-    digitalWrite(6, HIGH);
+    if(digitalRead(25) == HIGH)// check if turning right and set steering to off before turning left
+    {
+    digitalWrite(27, LOW);
+    digitalWrite(25, LOW);
+    steeringMode = 0; // changes here
+    waitCycles = 0;
+    }
+    else if(waitCycles >= 5)
+    {
+    digitalWrite(27, HIGH);
+    digitalWrite(25, LOW);
     steeringMode = 1;
+    
+    }
+    else
+    {
+      waitCycles ++;
+    }
   } else {//right turn
-    digitalWrite(7, HIGH);
-    digitalWrite(6, LOW);
+  if(digitalRead(27) == HIGH)// check if turning left and set steering to off before turning right
+    {
+    digitalWrite(27, LOW);
+    digitalWrite(25, LOW);
+    steeringMode = 0; // changes here
+    waitCycles = 0;
+    }
+    else if(waitCycles >= 5)
+    {
+    digitalWrite(27, LOW);
+    digitalWrite(25, HIGH);
     steeringMode = -1;
+    
+    }
+    else
+    {
+      waitCycles ++;
+    }
   }
   
   Serial.print("Steering Mode: ");
@@ -124,7 +162,7 @@ void SteeringController::engageSteering(int32_t input) {
 
 // Calculates the angle from left sensor
 int32_t SteeringController::computeAngleLeft() { // issues with sensor
-  int32_t val = analogRead(R_SENSE_PIN);// change for final version 
+  int32_t val = analogRead(R_SENSE_PIN);// change for final version  
  // val = map(val, Left_Read_at_MIN_TURN, Left_Read_at_MAX_TURN, MIN_TURN_MS, MAX_TURN_MS);
   if(DEBUG){
     Serial.print("Left sensor: ");

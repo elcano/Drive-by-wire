@@ -12,6 +12,7 @@ class SteeringController {
   int32_t currentAngle;
   int32_t threshold = 20;
   int16_t steeringMode = 0;
+  int16_t waitCycles;
   void SteeringPID(int32_t input);
   int32_t computeAngleLeft();
   //int32_t computeAngleRight();

@@ -58,11 +58,16 @@ void RC_Controller::mapSteering() {
 
     // filtering pulse widths
     if (prevSteering == pulseWidth) {
-      if (pulseWidth > 1500) {  // calibrated steering values
-        steeringValue = map(pulseWidth, 1012, 1440, 630, 315);
+      // Orange trike
+      // Left 460 center 165 right 70
+      // yellow trike
+      // left 460 center 230 right 220
+      if (pulseWidth < 1500) {  // calibrated steering values
+        steeringValue = map(pulseWidth, 1000, 1500, 460, 230);
       } else {
-        steeringValue = map(pulseWidth, 1440, 1860, 315, 91);
+        steeringValue = map(pulseWidth, 1501, 2000, 230, 180);
       }
+      
       RC_VALUES_MAPPED[RC_CH1_STEERING] = steeringValue;
     }
 

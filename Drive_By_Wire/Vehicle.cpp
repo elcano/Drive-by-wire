@@ -123,10 +123,25 @@ void Vehicle::initalize(){
   Serial.print(" (");
   Serial.print(daysOfTheWeek[rtc.now().dayOfTheWeek()]);
   Serial.print(") ");
-  Serial.print(rtc.now().hour() );
+  if(rtc.now().hour() == 12)
+  {
+    Serial.print(rtc.now().hour());
+  }
+  else
+  {
+  Serial.print((rtc.now().hour() % 12));
+  }
   Serial.print(':');
+  if(rtc.now().minute() < 10)
+  {
+  Serial.print("0");
+  }
   Serial.print(rtc.now().minute() );
   Serial.print(':');
+  if(rtc.now().second() < 10)
+  {
+  Serial.print("0");
+  }
   Serial.print(rtc.now().second());
   if (rtc.now().twelveHour() > 0) {
     Serial.print(" PM");
@@ -249,13 +264,20 @@ void Vehicle::initalize(){
 
   logfile.print(now.year(), DEC);
   logfile.print('/');
-  logfile.print(now.month() / 10, DEC);  logfile.print(now.month() % 10, DEC);
+  logfile.print(now.month(), DEC);
   logfile.print('/');
-  logfile.print(now.day() / 10, DEC);  logfile.print(now.day() % 10, DEC);
+  logfile.print(now.day(), DEC);
   logfile.print(" (");
   logfile.print(daysOfTheWeek[now.dayOfTheWeek()]);
   logfile.print(") ");
-  logfile.print((now.hour() % 12) / 10, DEC);  logfile.print((now.hour() % 12) % 10, DEC);
+  if(now.hour() == 12)
+  {
+    logfile.print(now.hour());
+  }
+  else
+  {
+  logfile.print((now.hour() % 12));
+  }
   logfile.print(':');
   logfile.print(now.minute() / 10, DEC);  logfile.print(now.minute() % 10, DEC);
   logfile.print(':');

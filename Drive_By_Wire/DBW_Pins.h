@@ -130,8 +130,8 @@
 #define R_SENSE_PIN        A11
 // originally intended as a return ground, these analog pins are free and on the steering header.
 // Intent was to use L_SENSE - L_RTN as a differential signal.
-#define L_RTN_PIN          26
-#define R_RTN_PIN          27
+//#define L_RTN_PIN          26
+//#define R_RTN_PIN          27
 
 // Command to e-bike controller to use regenerative braking; not used 
 #define REGEN_PIN           22
