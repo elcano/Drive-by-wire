@@ -4,7 +4,7 @@
 
 class SteeringController {
   Servo Steer_Servo;
-  PID steerPID;
+  PID steerPID; // currently not used summer 2024
   double steerAngleUS;
   double PIDSteeringOutput_us;
   double desiredTurn_us;
@@ -15,12 +15,11 @@ class SteeringController {
   int16_t waitCycles;
   void SteeringPID(int32_t input);
   int32_t computeAngleLeft();
-  //int32_t computeAngleRight();
   void engageSteering(int32_t input);
 public:
   SteeringController();
   ~SteeringController();
   int32_t update(int32_t desiredAngle);
   int16_t getSteeringMode();
-   int32_t computeAngleRight();
+  int32_t computeAngleRight(); // right angle sensor is less accurate than left sensor and is currently unused and it is public for datalogging purposes 
 };
