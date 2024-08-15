@@ -22,6 +22,7 @@ Brakes::Brakes() {
    * LEDs go off for relays 2 and 3;
    * Relay 2 has NO (connected to solenoids) open, and there is no power to solenoids.
    * Relay 3 connects COM (other end of solenoid) to NO (12V) 
+   * For DBW v4 the relays are wired backwards where the NO and NC are swapped
    */
 void Brakes::Release() {
   if (DEBUG)
