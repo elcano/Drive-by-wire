@@ -32,7 +32,7 @@ void setup() {
 // Note: Each function from test.cpp is supposed to be called one at a time. 
 void loop()
 {
-  //myTest->testBrake();
+  myTest->testBrake();
   //myTest->testSteering();
-  myTest->testThrottle();
+  //myTest->testThrottle();
 }

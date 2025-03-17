@@ -15,6 +15,10 @@ class SteeringController{
 	int32_t computeAngleLeft();
 	int32_t computeAngleRight();
 	void engageSteering(int32_t input);
+
+  //New function 3/16/25
+  void controlHBridge(int32_t target_us);
+
 public:
 	SteeringController();
 	~SteeringController();

@@ -88,6 +88,13 @@
 #define IRPT_PHASE_B       A14
 #define IRPT_PHASE_A       A15
 
+//Pin for lm393 
+//Makre sure these pin are connected correctly with MircoCOntroller
+#define LM393_SIGNAL_PIN 2  
+//left turn and right turn pins for mosfet
+#define LEFT_TURN_MOSFET 4   
+#define RIGHT_TURN_MOSFET 5 
+
 
 /*---------- Version 4: Arduino Due or Mega -------------------------------------*/
 #else // LLBversion != 3
