@@ -5,6 +5,8 @@
 #include <PinChangeInterrupt.h>
 #endif  // Mega
 #include "ThrottleController.h"
+#include "DriveMode.h"
+
 
 volatile uint32_t ThrottleController::tickTime_ms[2];
 
@@ -65,7 +67,17 @@ void ThrottleController::tick() {
  * based on the PIDs being on or off in Settings
  * param dSpeed desired speed in mm/s
  */
-int32_t ThrottleController::update(int32_t dSpeed) {
+int32_t ThrottleController::update(int32_t dSpeed, DriveMode mode) {
+  if (mode == NEUTRAL_MODE) {
+    stop();  // Disable DAC output
+    return 0;
+  }
+
+  // // Optionally invert speed in reverse mode
+  // if (mode == REVERSE_MODE) {
+  //   dSpeed = constrain(dSpeed, 0, 150);  // prevent negatives
+  //   dSpeed = map(dSpeed, 0, 150, 150, 0);  // invert DAC for reverse, or just limit
+  // }
 
   if (USE_PIDS)
     ThrottlePID(dSpeed);
@@ -73,19 +85,16 @@ int32_t ThrottleController::update(int32_t dSpeed) {
     engageThrottle(dSpeed);
 
   computeSpeed();
-  if (DEBUG)
-    Serial.println("mm Speed: " + String(speedCyclometerInput_mmPs));
 
   if (DEBUG) {
+    Serial.println("mm Speed: " + String(speedCyclometerInput_mmPs));
     Serial.print("PWM speed: ");
     Serial.println(currentThrottlePWM);
   }
-  computeSpeed();
-  if (DEBUG)
-    Serial.println("mm Speed: " + String(speedCyclometerInput_mmPs));
-  //return speedCyclometerInput_mmPs;
+
   return dSpeed;
 }
+
 
 
 //Private functions
@@ -127,6 +136,11 @@ void ThrottleController::write(int32_t address, int32_t value) {
     analogWrite(DAC0, value);
   else
     analogWrite(DAC1, value);
+
+//   if (address != 1)
+//   analogWrite(DAC0, map(value, 0, 120, 0, 4095));
+// else
+//   analogWrite(DAC1, map(value, 0, 120, 0, 4095));
 #endif
 }
 
