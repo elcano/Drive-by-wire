@@ -117,7 +117,7 @@ void RC_Controller::updateDriveSelection() {
   //removed reverse mode since it wasnt working with neutral.
   if (ch4PulseWidth < 1200) {
     driveMode = NEUTRAL_MODE;
-  } else if (ch4PulseWidth < 2300) {
+  } else if (ch4PulseWidth < 2000) {
     driveMode = NEUTRAL_MODE;
   } else {
     driveMode = DRIVE_MODE;

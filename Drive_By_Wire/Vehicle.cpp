@@ -491,9 +491,10 @@ void Vehicle::LogSD(){
   logfile.print(",");
   logfile.print(steeringVal);
   logfile.print(",");
-  logfile.println(currentRightAngle);
+  logfile.print(currentRightAngle);
   logfile.print(",");
-  logfile.print(currentDriveMode);  
+  logfile.print(currentDriveMode);
+  logfile.println(); 
   logfile.flush();   // Flush the file to make sure data is written immediately
 }
 void Vehicle::error(char *str)
