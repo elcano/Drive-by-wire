@@ -20,10 +20,12 @@ uint32_t delayTime;
 
 void setup() {
   Serial.begin(baud);
+  // while(!Serial);
   if (DEBUG) {
     Serial.println("main Setup complete");
   }
   myTrike = new Vehicle();
+  myTrike->initalize();
 }
 
 void loop() {
@@ -31,8 +33,9 @@ void loop() {
   nextTime = nextTime + LOOP_TIME_MS;
   uint32_t timeStart_ms = millis();
 
-  //myTrike->update();
-  myTrike->updateRC();
+  myTrike->update();
+  myTrike->updateRC(); 
+  myTrike->LogSD();
 
   //Timing code
   endTime = millis();
@@ -48,4 +51,6 @@ void loop() {
   }
   if (delayTime > 0UL)
     delay(delayTime);
+
+
 }

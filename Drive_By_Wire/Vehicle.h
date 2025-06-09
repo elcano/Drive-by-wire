@@ -18,10 +18,11 @@ extern tmElements_t tm;
 
 class Vehicle {
 private:
-  static Brakes brake;
-  static ThrottleController throttle;
-  SteeringController steer;
-  static RC_Controller RC;
+
+static RC_Controller* RC;
+static ThrottleController* throttle;
+static SteeringController* steer;
+static Brakes* brake;
 
 File logfile;
 
@@ -38,21 +39,21 @@ File logfile;
   int16_t currentBrake;
   int16_t currentAngle;
   int16_t currentRightAngle;
+  int currentDriveMode;
 
   int brakeHold; // Hold brakes with 12V 
   long throttlePulse_ms;
   long steerPulse_ms;
   int16_t steeringVal; // new val
-  void recieveCan();
-  void initalize(); 
+  //void recieveCan();
   void error(char *str);
   void print2digits(int number);
   bool getTime(const char *str);
   bool getDate(const char *str);
 
 
-
 public:
+  void initalize(); 
   Vehicle();
   ~Vehicle();
   void update();
@@ -62,5 +63,8 @@ public:
   void real_System(int16_t, int16_t, int16_t);
   void LogSD();
   void LogMonitor(); 
+  void applyEStop();
+  void handleThrottleAndBrake();
+  void handleSteering();
   
 };

@@ -28,6 +28,9 @@ Minimum and maximum speed allowed
 #define MAX_ACC_OUT 227
 #define MAX_SPEED_KmPh 20
 
+//NEWLY ADDED FOR ESTOP
+#define RC_CH3_ESTOP 10
+
 
 // max speed
 const int32_t KmPh_mmPs = 1000000 / 3600;

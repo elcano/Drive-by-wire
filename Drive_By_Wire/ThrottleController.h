@@ -2,6 +2,7 @@
 #include "Settings.h"
 #include <SPI.h>
 #include "PID_v1.h"
+#include "DriveMode.h"
 
 class ThrottleController {
 private:
@@ -32,5 +33,6 @@ public:
   ThrottleController();
   ~ThrottleController();
   void stop();
-  int32_t update(int32_t dSpeed);
+  int32_t update(int32_t dSpeed, DriveMode mode);
+  int getCurrentThrottlePWM() const;
 };

@@ -1,13 +1,13 @@
 #ifndef _DBW_PINS_
 #define _DBW_PINS_
 
-#define DEBUG true
+#define DEBUG false
 #define USE_PIDS false // throttle currently uses a PID controller, Steering does not current use a PID controller
 
 #include <Arduino.h>
 
 //Version can be 1,3 or 4; LLB = Low Level Board = Drive By Wire
-#define DBWversion 3
+#define DBWversion 4
 
 /*---------- Version 1 - No Longer supported------------------------
 #if DBWversion == 1
@@ -29,6 +29,7 @@
 /* Pin declarations */
 // Serial Monitor uses pins 0,1 for RX0,TX0
 // Servo to control the brakes; not used
+
 #define BRAKE_PULSE_PIN     2
  // keep-alive watchdog is not yet implemented
 #define WATCHDOG_PIN        5  
@@ -130,8 +131,17 @@
 #define R_SENSE_PIN        A11
 // originally intended as a return ground, these analog pins are free and on the steering header.
 // Intent was to use L_SENSE - L_RTN as a differential signal.
-#define L_RTN_PIN          26
-#define R_RTN_PIN          27
+//#define L_RTN_PIN          26
+//#define R_RTN_PIN          27
+
+//----NEWLY ADDED PINs 6/8/25-----
+#define THROTTLE_BR_CH2_PIN 9
+#define STEERING_CH1_PIN 8
+
+#define DRIVE_MODE_CH4_PIN 11
+#define RC_CH3_ESTOP 10
+#define RIGHT_TURN_PIN 29
+#define LEFT_TURN_PIN 27
 
 // Command to e-bike controller to use regenerative braking; not used 
 #define REGEN_PIN           22
@@ -142,7 +152,7 @@
 // Pin used to steer the vehicle with a pulse
 #define STEER_PULSE_PIN     26
 // Relay that turns on power to the steering system
-#define STEER_ON_PIN        D28
+#define STEER_ON_PIN        4
 // Debug or status for DBW
 #define DBW_LED             30
  // keep-alive watchdog is not yet implemented
