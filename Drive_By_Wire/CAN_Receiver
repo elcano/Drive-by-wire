@@ -1,0 +1,46 @@
+#include <due_can.h>
+
+const int outputPin = 7;  // D7
+
+void setup() {
+    Serial.begin(115200);
+    pinMode(outputPin, OUTPUT);
+    digitalWrite(outputPin, LOW);  // Start LOW
+
+    if (!Can0.begin(CAN_BPS_500K)) {
+        Serial.println("CAN init failed");
+        while (1);
+    }
+    Can0.watchFor();
+    Serial.println("CAN initialized, waiting for messages...");
+}
+
+void loop() {
+    if (Can0.available() > 0) {
+        CAN_FRAME incoming;
+        Can0.read(incoming);
+
+        Serial.print("Received ID=0x");
+        Serial.print(incoming.id, HEX);
+        Serial.print(" Len=");
+        Serial.print(incoming.length);
+        Serial.print(" Data=");
+        for (int i = 0; i < incoming.length; i++) {
+            Serial.print("0x");
+            Serial.print(incoming.data.byte[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+
+        // Check for specific condition:
+        if (incoming.id == 0x123 && incoming.length >= 1 && incoming.data.byte[0] == 0xAB) {
+            Serial.println("Match! Setting D7 HIGH");
+            digitalWrite(outputPin, HIGH);
+        } else {
+            Serial.println("No match, setting D7 LOW");
+            digitalWrite(outputPin, LOW);
+        }
+    }
+
+    delay(10);  // Small loop delay
+}
