@@ -69,7 +69,7 @@ void Brakes::Update() {
   // Keep track of state and when higher voltage was applied
   noInterrupts();
   brake_state tempState = state;
-  uint32_t tempClock = millis(); // Use millis() directly here for consistency
+  uint32_t tempClock = clock_hi_ms; // <-- CORRECTED: Use clock_hi_ms here
   interrupts();
 
   unsigned long tick = millis();
@@ -81,9 +81,10 @@ void Brakes::Update() {
 
     // To hold brakes at 12V, we need the state that physically ENGAGES (LOW).
     // Assuming BrakeVoltPin LOW selects 12V (and HIGH selects 24V).
-    digitalWrite(BrakeVoltPin, LOW); // Explicitly LOW for 12V holding state
+    digitalWrite(BrakeVoltPin, HIGH); // Explicitly LOW for 12V holding state
     noInterrupts();
     state = BR_LO_VOLTS;
     interrupts();
   }
 }
+

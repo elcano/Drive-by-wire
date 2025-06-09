@@ -205,6 +205,8 @@ void Vehicle::update() {
   int16_t tempDbrake;
   int16_t tempDangle;
 
+  brake->Update();
+
   noInterrupts();
   tempDspeed = desired_speed_mmPs;
   tempDbrake = desired_brake;
@@ -403,14 +405,16 @@ void Vehicle::real_System(int16_t tempDspeed, int16_t tempDbrake, int16_t tempDa
 void Vehicle::eStop() {
   if (DEBUG)
     Serial.println("E-Stop!");
-  brake->Stop();      // <- use '->'
+  if(brakeHold == 0) {
+    brake->Stop();
+    brakeHold = 1;
+  }  
   throttle->stop();   // <- use '->'
-  brakeHold = 1;
 
 }
 void Vehicle::applyEStop() {
   eStop(); // engages brakes + stops throttle
-  brake->Update();
+  //brake->Update();
   throttle->stop(); // ensure DAC is zero
   desired_speed_mmPs = 0;
   desired_brake = 100;

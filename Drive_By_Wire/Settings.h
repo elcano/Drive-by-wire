@@ -43,7 +43,7 @@ const int32_t MIN_SPEED_mmPs = 0.01 * MAX_SPEED_mmPs;
 
 
 /* Time that the brakes can be high */
-const uint32_t MaxHi_ms = 800;
+const uint32_t MaxHi_ms = 2000;
 
 
 /*=========================================================================
