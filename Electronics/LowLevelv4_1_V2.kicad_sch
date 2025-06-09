@@ -1,0 +1,65 @@
+(kicad_sch (version 20230121) (generator eeschema)
+
+  (uuid d045d594-5e9c-4d0c-a67a-c741310f8a5e)
+
+  (paper "A4")
+
+  (lib_symbols
+  )
+
+
+  (sheet (at 132.08 36.83) (size 43.18 66.04) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid 1a0ed3e7-96f2-408e-b32f-6b43ab44c27b)
+    (property "Sheetname" "Low Level 4.1 Segment 3" (at 132.08 36.1184 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "LowLevelv4_1_3_V2.kicad_sch" (at 132.08 103.4546 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "LowLevelv4_1_V2"
+        (path "/d045d594-5e9c-4d0c-a67a-c741310f8a5e" (page "4"))
+      )
+    )
+  )
+
+  (sheet (at 35.56 36.83) (size 40.64 66.04) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid 5cd70ab5-fe5b-4c44-b997-a434eeb9256d)
+    (property "Sheetname" "Low Level 4.1 Segment 1" (at 35.56 36.1184 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "LowLevelv4_1_1_V2.kicad_sch" (at 35.56 103.4546 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "LowLevelv4_1_V2"
+        (path "/d045d594-5e9c-4d0c-a67a-c741310f8a5e" (page "2"))
+      )
+    )
+  )
+
+  (sheet (at 83.82 36.83) (size 40.64 66.04) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid bd780936-a4cf-4ca3-b9f8-5cb584b99ab7)
+    (property "Sheetname" "Low Level 4.1 Segment 2" (at 83.82 36.1184 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "LowLevelv4_1_2_V2.kicad_sch" (at 83.82 103.4546 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "LowLevelv4_1_V2"
+        (path "/d045d594-5e9c-4d0c-a67a-c741310f8a5e" (page "3"))
+      )
+    )
+  )
+
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)
