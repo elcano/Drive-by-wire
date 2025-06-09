@@ -11,23 +11,26 @@ Brakes::Brakes() {
   // Brakes are released as a default setting
   clock_hi_ms = millis();
   state = BR_OFF;
-  Release();
+  Release(); // This will now apply the "release" logic based on the new RELAYInversion
+  // If the initial power-on state still engages brakes, this line might need to be removed
+  // or adjusted. Let's try this first.
 
   if (DEBUG)
     Serial.println("Brake Setup Complete");
 }
 
 
-/*  Expected behavior:
-   * LEDs go off for relays 2 and 3;
-   * Relay 2 has NO (connected to solenoids) open, and there is no power to solenoids.
-   * Relay 3 connects COM (other end of solenoid) to NO (12V) 
-   */
+/* Expected behavior:
+    * LEDs go off for relays 2 and 3;
+    * Relay 2 has NO (connected to solenoids) open, and there is no power to solenoids.
+    * Relay 3 connects COM (other end of solenoid) to NO (12V) 
+    */
 void Brakes::Release() {
   if (DEBUG)
     Serial.println("RELEASE BRAKE");
 
   // Release the brakes, state is BR_OFF
+  // The RELAYInversion macro now handles the correct HIGH/LOW for release.
   digitalWrite(BrakeOnPin, RELAYInversion ? HIGH : LOW);
   digitalWrite(BrakeVoltPin, RELAYInversion ? HIGH : LOW);
   noInterrupts();
@@ -36,30 +39,31 @@ void Brakes::Release() {
 }
 
 
-/*  Expected behavior:
-   *  Both LEDs come on for Relays 2 and 3
-   *  Relay 2 connects NO (solenoids) to COM (ground)
-   *  Relay 3 connects COM (other end of solenoids) to NC (36V)
-   */
+/* Expected behavior:
+    * Both LEDs come on for Relays 2 and 3
+    * Relay 2 connects NO (solenoids) to COM (ground)
+    * Relay 3 connects COM (other end of solenoids) to NC (36V)
+    */
 void Brakes::Stop() {
   if (DEBUG)
     Serial.println("ACTIVATE BRAKE, applying 24V");
 
   noInterrupts();
-  digitalWrite(BrakeVoltPin, RELAYInversion ? LOW : HIGH);  // Need the higher voltage to activate the solenoid.
+  // The RELAYInversion macro now handles the correct HIGH/LOW for activation.
+  digitalWrite(BrakeVoltPin, RELAYInversion ? LOW : HIGH);   // Need the higher voltage to activate the solenoid.
   if (state != BR_HI_VOLTS) {
-    clock_hi_ms = millis();  // keep track of when the higher voltage was applied.
+    clock_hi_ms = millis();   // keep track of when the higher voltage was applied.
   }
-  digitalWrite(BrakeOnPin, RELAYInversion ? LOW : HIGH);  // Activate solenoid to apply brakes.
+  digitalWrite(BrakeOnPin, RELAYInversion ? LOW : HIGH);   // Activate solenoid to apply brakes.
   state = BR_HI_VOLTS;
   interrupts();
 }
 
 
 /* Expected behavior
-   *  If 36V has been on too long, relay 3 changes LED on to off, switching from 24 to 12V
-   *  If the switch is high, brakes will be released, with both LEDs off.
-   */
+    * If 36V has been on too long, relay 3 changes LED on to off, switching from 24 to 12V
+    * If the switch is high, brakes will be released, with both LEDs off.
+    */
 void Brakes::Update() {
 
   // Keep track of state and when higher voltage was applied
@@ -75,7 +79,8 @@ void Brakes::Update() {
     if (DEBUG)
       Serial.println("BRAKE SWITCH, switching to 12V");
 
-    digitalWrite(BrakeVoltPin, RELAYInversion ? HIGH : LOW);  // Set to lower voltage, which will keep brakes applied
+    // The RELAYInversion macro now handles the correct HIGH/LOW for switching voltage.
+    digitalWrite(BrakeVoltPin, RELAYInversion ? HIGH : LOW);   // Set to lower voltage, which will keep brakes applied
     noInterrupts();
     state = BR_LO_VOLTS;
     interrupts();

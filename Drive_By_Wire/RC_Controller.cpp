@@ -1,124 +1,143 @@
 #include <Arduino.h>
 #include "RC_Controller.h"
+#include "DBW_Pins.h"
 #include "Settings.h"
+#include "DriveMode.h"
 
-unsigned volatile long RC_Controller::riseTime[RC_NUM_SIGNALS] = { 0 };     // rising edge, beginning of pulse
-unsigned volatile long RC_Controller::elapsedTime[RC_NUM_SIGNALS] = { 0 };  // falling edge, end of pulse
+unsigned volatile long RC_Controller::riseTime[RC_NUM_SIGNALS] = { 0 };
+unsigned volatile long RC_Controller::elapsedTime[RC_NUM_SIGNALS] = { 0 };
 
-unsigned long RC_Controller::RC_RISE[RC_NUM_SIGNALS] = { 0 };     // stores the beginning of pulse
-unsigned long RC_Controller::RC_ELAPSED[RC_NUM_SIGNALS] = { 0 };  // stores the total pulse width
+unsigned long RC_Controller::RC_RISE[RC_NUM_SIGNALS] = { 0 };
+unsigned long RC_Controller::RC_ELAPSED[RC_NUM_SIGNALS] = { 0 };
+
+volatile bool RC_Controller::estopFlagChanged = false;
+volatile unsigned long RC_Controller::estopPulseWidth = 1500;
 
 
 RC_Controller::RC_Controller() {
-
-  // Setup input for RC reciever
   pinMode(STEERING_CH1_PIN, INPUT);
   pinMode(THROTTLE_BR_CH2_PIN, INPUT);
+  pinMode(RC_CH3_ESTOP, INPUT);
+  pinMode(DRIVE_MODE_CH4_PIN, INPUT);
 
-  // Interrupts to pins and ISR functions
   attachInterrupt(digitalPinToInterrupt(STEERING_CH1_PIN), ISR_STEERING_RISE, RISING);
-  attachInterrupt(digitalPinToInterrupt(THROTTLE_BR_CH2_PIN), ISR_THROTTLE_RISE, RISING);
+  attachInterrupt(digitalPinToInterrupt(THROTTLE_BR_CH2_PIN), ISR_THROTTLE_RISE, RISING); 
+  attachInterrupt(digitalPinToInterrupt(RC_CH3_ESTOP), RC_Controller::ISR_ESTOP_CHANGE, CHANGE);
 
-  // Initialize default values
   for (int i = 0; i < RC_NUM_SIGNALS; i++) {
-    RC_VALUES_MAPPED[i] = 0;  // keeps track of mapped values
-    previousTime[i] = 0;      // keep track of the time for each signal
+    RC_VALUES_MAPPED[i] = 0;
+    previousTime[i] = 0;
   }
-  prevSteering = 0;       // keep track of steering data
-  prevThrottleBrake = 0;  // keep track of throttle data
+
+  prevSteering = 0;
+  prevThrottleBrake = 0;
 }
 
 RC_Controller::~RC_Controller() {}
 
-// Obtain the mapped values for each channel
 long RC_Controller::getMappedValue(int channel) {
   return RC_VALUES_MAPPED[channel];
 }
 
-// Calls other function to map pulse widths accordingly
 void RC_Controller::mapValues() {
   mapThrottleBrake();
   mapSteering();
+
+  //maps Estop
+  unsigned long estopPulse = RC_ELAPSED[RC_CH3_ESTOP];
+  RC_VALUES_MAPPED[RC_CH3_ESTOP] = estopPulse;
+
+  
 }
 
-// Maps value into steering
-// 779 (Left - 1020 us), 722 (Straight - 1440us), 639 (Right - 1860us)
-// new Values for Left angle sensor 630 (Left - 1000 us), 315 (Straight - 1440us), 91 (Right - 1996us)
+long RC_Controller::getRawPulse(int channel) {
+  return RC_ELAPSED[channel];
+}
+
 void RC_Controller::mapSteering() {
   unsigned long currentTime = micros();
-
-  // smooth steering, can change value 2000 is arbitrary value
   if (currentTime - previousTime[RC_CH1_STEERING] >= 2000) {
-
     int steeringValue = 0;
     long pulseWidth = RC_ELAPSED[RC_CH1_STEERING];
-    if (pulseWidth < 1000 || pulseWidth > 2000) {  // invalid data, out of range
-      return;
-    }
+    if (pulseWidth < 1000 || pulseWidth > 2000) return;
 
-    // filtering pulse widths
-    if (prevSteering == pulseWidth) {
-      if (pulseWidth < 1440) {  // calibrated steering values
+    if (prevSteering != pulseWidth) {
+      if (pulseWidth < 1440)
         steeringValue = map(pulseWidth, 1000, 1440, 630, 315);
-      } else {
+      else
         steeringValue = map(pulseWidth, 1440, 1996, 91, 315);
-      }
+
       RC_VALUES_MAPPED[RC_CH1_STEERING] = steeringValue;
     }
 
     Serial.println("Steering:" + String(prevSteering));
-    previousTime[RC_CH1_STEERING] = currentTime;  // update time
-    prevSteering = pulseWidth;                    // steering data
-    steeringFlag = 1;                             // valid data
+    previousTime[RC_CH1_STEERING] = currentTime;
+    prevSteering = pulseWidth;
+    steeringFlag = 1;
   }
 }
 
-// Maps values for throttle (0 - 255); >= 1500us pulse width
-// Also calls brake (<1100 us pulse width)
 void RC_Controller::mapThrottleBrake() {
   unsigned long currentTime = micros();
-
-  // filtering pulse width at next period cycle (~16.6ms)
   if (currentTime - previousTime[RC_CH2_THROTTLE_BR] >= 16600) {
-
     long pulseWidth = RC_ELAPSED[RC_CH2_THROTTLE_BR];
-    if (pulseWidth < 1000 || pulseWidth > 2000) {  // invalid data, out of range
-      return;
+    if (pulseWidth < 1000 || pulseWidth > 2000) return;
+
+    if (pulseWidth < 1100) {
+      RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = -1;
+      Serial.println("Throttle:" + String(pulseWidth));
+    } else if (pulseWidth >= 1500) {
+      int throttleValue = map(pulseWidth, 1500, 2000, 0, 150);
+      RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = throttleValue;
     }
 
-    // filter pulse widths
-    if (prevThrottleBrake == pulseWidth) {
-      if (pulseWidth < 1100) {  // brakes
-        RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = -1;
-        Serial.println("Throttle:" + String(pulseWidth));
-      } else if(pulseWidth >= 1500) {                                                    // throttle
-        int throttleValue = map(pulseWidth, 1500, 2000, 0, 120);  // maximum to 120 counts, increase if needed
-        RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = throttleValue;
-      }
-    }
+    Serial.println(RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR]);
 
-    Serial.println("Throttle:" + String(pulseWidth));
-    previousTime[RC_CH2_THROTTLE_BR] = currentTime;  // update time
-    prevThrottleBrake = pulseWidth;                  // throttle or brake
-    throttleBrakeFlag = 1;                           // valid data
+    previousTime[RC_CH2_THROTTLE_BR] = currentTime;
+    prevThrottleBrake = pulseWidth;
+    throttleBrakeFlag = 1;
   }
 }
 
-// Checks for valid data for steering, throttle, and brakes
 bool RC_Controller::checkValidData() {
   return (throttleBrakeFlag && steeringFlag);
 }
 
-// Clears flag after data processing
 void RC_Controller::clearFlag() {
   throttleBrakeFlag = 0;
   steeringFlag = 0;
 }
 
+void RC_Controller::update() {
+    ch4PulseWidth = pulseIn(DRIVE_MODE_CH4_PIN, HIGH, 25000);  // 25ms timeout
 
-/* Interrupt Service Routine */
+    if (ch4PulseWidth < 1300) {
+        driveMode = REVERSE_MODE;
+    } else if (ch4PulseWidth < 1900) {
+        driveMode = NEUTRAL_MODE;
+    } else {
+        driveMode = DRIVE_MODE;
+    }
+
+    if (DEBUG) {
+        Serial.print("CH4 Pulse: ");
+        Serial.print(ch4PulseWidth);
+        Serial.print(" => Mode: ");
+        switch (driveMode) {
+            case REVERSE_MODE: Serial.println("REVERSE"); break;
+            case NEUTRAL_MODE: Serial.println("NEUTRAL"); break;
+            case DRIVE_MODE:   Serial.println("DRIVE"); break;
+        }
+    }
+}
+
+DriveMode RC_Controller::getDriveMode() const {
+    return driveMode;
+}
+
+
 void RC_Controller::ISR_STEERING_RISE() {
-  if (digitalRead(STEERING_CH1_PIN) == HIGH) {  // filter pulse widths
+  if (digitalRead(STEERING_CH1_PIN) == HIGH) {
     noInterrupts();
     riseTime[RC_CH1_STEERING] = micros();
     RC_RISE[RC_CH1_STEERING] = riseTime[RC_CH1_STEERING];
@@ -128,7 +147,7 @@ void RC_Controller::ISR_STEERING_RISE() {
 }
 
 void RC_Controller::ISR_STEERING_FALL() {
-  if (digitalRead(STEERING_CH1_PIN) == LOW) {  // filter pulse widths
+  if (digitalRead(STEERING_CH1_PIN) == LOW) {
     noInterrupts();
     elapsedTime[RC_CH1_STEERING] = micros() - RC_RISE[RC_CH1_STEERING];
     RC_ELAPSED[RC_CH1_STEERING] = elapsedTime[RC_CH1_STEERING];
@@ -138,7 +157,7 @@ void RC_Controller::ISR_STEERING_FALL() {
 }
 
 void RC_Controller::ISR_THROTTLE_RISE() {
-  if (digitalRead(THROTTLE_BR_CH2_PIN) == HIGH) {  // filter pulse widths
+  if (digitalRead(THROTTLE_BR_CH2_PIN) == HIGH) {
     noInterrupts();
     riseTime[RC_CH2_THROTTLE_BR] = micros();
     RC_RISE[RC_CH2_THROTTLE_BR] = riseTime[RC_CH2_THROTTLE_BR];
@@ -148,7 +167,7 @@ void RC_Controller::ISR_THROTTLE_RISE() {
 }
 
 void RC_Controller::ISR_THROTTLE_FALL() {
-  if (digitalRead(THROTTLE_BR_CH2_PIN) == LOW) {  // filter pulse widths
+  if (digitalRead(THROTTLE_BR_CH2_PIN) == LOW) {
     noInterrupts();
     elapsedTime[RC_CH2_THROTTLE_BR] = micros() - RC_RISE[RC_CH2_THROTTLE_BR];
     RC_ELAPSED[RC_CH2_THROTTLE_BR] = elapsedTime[RC_CH2_THROTTLE_BR];
@@ -156,3 +175,66 @@ void RC_Controller::ISR_THROTTLE_FALL() {
     interrupts();
   }
 }
+
+// void RC_Controller::ISR_DRIVEMODE_RISE() {
+//   if (digitalRead(DRIVE_MODE_CH4_PIN) == HIGH) {
+//     noInterrupts();
+//     riseTime[RC_CH4_DRIVEMODE] = micros();
+//     RC_RISE[RC_CH4_DRIVEMODE] = riseTime[RC_CH4_DRIVEMODE];
+//     attachInterrupt(digitalPinToInterrupt(DRIVE_MODE_CH4_PIN), ISR_DRIVEMODE_FALL, FALLING);
+//     interrupts();
+//   }
+// }
+
+// void RC_Controller::ISR_DRIVEMODE_FALL() {
+//   if (digitalRead(DRIVE_MODE_CH4_PIN) == LOW) {
+//     noInterrupts();
+//     elapsedTime[RC_CH4_DRIVEMODE] = micros() - RC_RISE[RC_CH4_DRIVEMODE];
+//     RC_ELAPSED[RC_CH4_DRIVEMODE] = elapsedTime[RC_CH4_DRIVEMODE];
+//     attachInterrupt(digitalPinToInterrupt(DRIVE_MODE_CH4_PIN), ISR_DRIVEMODE_RISE, RISING);
+//     interrupts();
+//   }
+// }
+
+void RC_Controller::ISR_ESTOP_CHANGE() {
+  static unsigned long estopRise = 0;
+  static unsigned long prevPulse = 1500;
+  static unsigned long lastValidPulseTime = 0;  // <-- debounce time marker
+
+  bool pinState = digitalRead(RC_CH3_ESTOP);
+  unsigned long now = micros();
+
+  if (pinState) {
+    estopRise = now;
+  } else {
+    unsigned long pulse = now - estopRise;
+
+    // Debounce: Require at least 50 ms between accepted changes
+    if ((now - lastValidPulseTime) > 50000) { // 50 ms
+      if (pulse >= 1000 && pulse <= 2100) {
+        if (abs((int32_t)pulse - (int32_t)prevPulse) > 50) {
+          estopPulseWidth = pulse;
+          estopFlagChanged = true;
+          prevPulse = pulse;
+          lastValidPulseTime = now;
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
