@@ -261,7 +261,7 @@ void Vehicle::update() {
   }
 #endif DBWversion
   // Update every second
-  delay(500);
+  delay(1000);
 }
 
 /********************************************************************************************************
@@ -410,6 +410,7 @@ void Vehicle::eStop() {
 }
 void Vehicle::applyEStop() {
   eStop(); // engages brakes + stops throttle
+  brake->Update();
   throttle->stop(); // ensure DAC is zero
   desired_speed_mmPs = 0;
   desired_brake = 100;
