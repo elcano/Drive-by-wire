@@ -15,6 +15,8 @@ Minimum and maximum values to send to the motor
 Minimum and maximum speed allowed
 */
 
+#define RELAYInversion true
+
 // New variables for version 3 or earlier
 #define RC_STRAIGHT_MIN_MS 1000
 #define RC_STRAIGHT_MAX_MS 1850

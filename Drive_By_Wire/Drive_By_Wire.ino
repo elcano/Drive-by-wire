@@ -19,8 +19,11 @@ uint32_t delayTime;
 #define ULONG_MAX 0x7FFFFFFF
 
 void setup() {
+  //analogWriteResolution(12);
   Serial.begin(baud);
+
   // while(!Serial);
+
   if (DEBUG) {
     Serial.println("main Setup complete");
   }
@@ -34,8 +37,10 @@ void loop() {
   uint32_t timeStart_ms = millis();
 
   myTrike->update();
+
   myTrike->updateRC(); 
   myTrike->LogSD();
+
 
   //Timing code
   endTime = millis();
@@ -51,6 +56,5 @@ void loop() {
   }
   if (delayTime > 0UL)
     delay(delayTime);
-
 
 }
