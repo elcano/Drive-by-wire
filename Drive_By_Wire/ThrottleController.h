@@ -34,7 +34,5 @@ public:
   ~ThrottleController();
   void stop();
   int32_t update(int32_t dSpeed, DriveMode mode);
-  // ADDED: Public getter for currentThrottlePWM
-  int32_t getCurrentThrottlePWM() { return currentThrottlePWM; }
-  // END ADDED
+  int getCurrentThrottlePWM() const;
 };

@@ -1,3 +1,29 @@
+// #pragma once
+// #include <Servo.h>
+// #include "PID_v1.h"
+
+// class SteeringController {
+//   Servo Steer_Servo;
+//   PID steerPID;
+//   double steerAngleUS;
+//   double PIDSteeringOutput_us;
+//   double desiredTurn_us;
+//   int32_t currentSteeringUS = 0;
+//   int32_t currentAngle;
+//   int32_t threshold = 20;
+//   int16_t steeringMode = 0;
+//   void SteeringPID(int32_t input);
+//   int32_t computeAngleLeft();
+//   //int32_t computeAngleRight();
+//   void engageSteering(int32_t input);
+// public:
+//   SteeringController();
+//   ~SteeringController();
+//   int32_t update(int32_t desiredAngle);
+//   int16_t getSteeringMode();
+//    int32_t computeAngleRight();
+// };
+
 #pragma once
 
 #include <Servo.h>
@@ -22,14 +48,7 @@ private:
   // Private methods
   void SteeringPID(int32_t input);
   void engageSteering(int32_t input);
-  // The implementations of computeAngleLeft and computeAngleRight are assumed to be in the .cpp.
-  // They are private because the public interface will directly expose them if needed.
-  // If they are only called internally and their values are *returned* by another public method,
-  // then keeping them private is correct. However, if they need to be called directly for logging,
-  // they need to be public. Based on the previous conversation, they should be public.
-  // I will make them public.
-  // int32_t computeAngleLeft(); // Moved to public
-  // int32_t computeAngleRight(); // Moved to public
+  int32_t computeAngleLeft();
 
 public:
   SteeringController();
@@ -41,8 +60,7 @@ public:
   // Optional getter for debugging
   int16_t getSteeringMode();
 
-  // ADDED: Public getters for sensor readings
-  int32_t computeAngleLeft();
+  // Optional use of right sensor (if supported)
   int32_t computeAngleRight();
-  // END ADDED
 };
+

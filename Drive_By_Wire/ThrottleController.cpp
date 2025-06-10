@@ -13,6 +13,8 @@ volatile uint32_t ThrottleController::tickTime_ms[2];
 ThrottleController::ThrottleController()
   : speedPID(&speedCyclometerInput_mmPs, &PIDThrottleOutput_pwm, &desiredSpeed_mmPs, proportional_throttle, integral_throttle, derivative_throttle, DIRECT) {
 
+  currentThrottlePWM = 0;
+
   speedPID.SetOutputLimits(MIN_ACC_OUT, MAX_ACC_OUT);
   speedPID.SetSampleTime(PID_CALCULATE_TIME);
   speedPID.SetMode(AUTOMATIC);
@@ -73,7 +75,7 @@ int32_t ThrottleController::update(int32_t dSpeed, DriveMode mode) {
     return 0;
   }
 
-  // // Optionally invert speed in reverse mode
+  //Reverse doesnt seem to work
   // if (mode == REVERSE_MODE) {
   //   dSpeed = constrain(dSpeed, 0, 150);  // prevent negatives
   //   dSpeed = map(dSpeed, 0, 150, 150, 0);  // invert DAC for reverse, or just limit
@@ -268,4 +270,8 @@ void ThrottleController::computeSpeed() {
       speedCyclometerInput_mmPs = WHEEL_CIRCUM_MM * (1000.0 / (tempTick[0] - tempTick[1]));
     }
   }
+}
+
+int ThrottleController::getCurrentThrottlePWM() const {
+    return currentThrottlePWM;
 }

@@ -134,12 +134,12 @@
 //#define L_RTN_PIN          26
 //#define R_RTN_PIN          27
 
-//----NEWLY ADDED PIN FOR ESTOP-----
-#define RC_CH3_ESTOP 10
+//----NEWLY ADDED PINs 6/8/25-----
 #define THROTTLE_BR_CH2_PIN 9
 #define STEERING_CH1_PIN 8
-#define DRIVE_MODE_CH4_PIN 11
 
+#define DRIVE_MODE_CH4_PIN 11
+#define RC_CH3_ESTOP 10
 #define RIGHT_TURN_PIN 29
 #define LEFT_TURN_PIN 27
 

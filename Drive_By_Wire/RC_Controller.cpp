@@ -12,7 +12,7 @@ unsigned long RC_Controller::RC_ELAPSED[RC_NUM_SIGNALS] = { 0 };
 
 volatile bool RC_Controller::estopFlagChanged = false;
 volatile unsigned long RC_Controller::estopPulseWidth = 1500;
-
+int currentDriveMode = 0; 
 
 RC_Controller::RC_Controller() {
   pinMode(STEERING_CH1_PIN, INPUT);
@@ -46,12 +46,7 @@ void RC_Controller::mapValues() {
   //maps Estop
   unsigned long estopPulse = RC_ELAPSED[RC_CH3_ESTOP];
   RC_VALUES_MAPPED[RC_CH3_ESTOP] = estopPulse;
-
   
-}
-
-long RC_Controller::getRawPulse(int channel) {
-  return RC_ELAPSED[channel];
 }
 
 void RC_Controller::mapSteering() {
@@ -89,6 +84,9 @@ void RC_Controller::mapThrottleBrake() {
     } else if (pulseWidth >= 1500) {
       int throttleValue = map(pulseWidth, 1500, 2000, 0, 150);
       RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = throttleValue;
+    } else {
+        // Neutral state — neither throttle nor brake
+        RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR] = 0;
     }
 
     Serial.println(RC_VALUES_MAPPED[RC_CH2_THROTTLE_BR]);
@@ -108,33 +106,55 @@ void RC_Controller::clearFlag() {
   steeringFlag = 0;
 }
 
-void RC_Controller::update() {
-    ch4PulseWidth = pulseIn(DRIVE_MODE_CH4_PIN, HIGH, 25000);  // 25ms timeout
+void RC_Controller::updateDriveSelection() {
+  ch4PulseWidth = pulseIn(DRIVE_MODE_CH4_PIN, HIGH, 100000);  // 100ms timeout
 
-    if (ch4PulseWidth < 1300) {
-        driveMode = REVERSE_MODE;
-    } else if (ch4PulseWidth < 1900) {
-        driveMode = NEUTRAL_MODE;
-    } else {
-        driveMode = DRIVE_MODE;
-    }
+  if (ch4PulseWidth < 500 || ch4PulseWidth > 3000) {
+    // Ignore invalid pulse
+    return;
+  }
 
-    if (DEBUG) {
-        Serial.print("CH4 Pulse: ");
-        Serial.print(ch4PulseWidth);
-        Serial.print(" => Mode: ");
-        switch (driveMode) {
-            case REVERSE_MODE: Serial.println("REVERSE"); break;
-            case NEUTRAL_MODE: Serial.println("NEUTRAL"); break;
-            case DRIVE_MODE:   Serial.println("DRIVE"); break;
-        }
-    }
+  //removed reverse mode since it wasnt working with neutral.
+  if (ch4PulseWidth < 1200) {
+    driveMode = NEUTRAL_MODE;
+  } else if (ch4PulseWidth < 2000) {
+    driveMode = NEUTRAL_MODE;
+  } else {
+    driveMode = DRIVE_MODE;
+  }
 }
 
 DriveMode RC_Controller::getDriveMode() const {
     return driveMode;
 }
 
+bool RC_Controller::processEStop() {
+  if (!estopFlagChanged) return estopState;
+
+  estopFlagChanged = false;
+
+  Serial.print("E-STOP Pulse: ");
+  Serial.println(estopPulseWidth);
+
+  if (estopPulseWidth > 1800) {
+    if (!estopState) {
+      estopState = true;
+      Serial.println(">>> E-STOP ON <<<");
+    }
+  } else if (estopPulseWidth < 1200) {
+    if (estopState) {
+      estopState = false;
+      Serial.println(">>> E-STOP OFF <<<");
+    }
+  }
+
+  return estopState;
+}
+
+
+bool RC_Controller::isEStopActive() const {
+  return estopState;
+}
 
 void RC_Controller::ISR_STEERING_RISE() {
   if (digitalRead(STEERING_CH1_PIN) == HIGH) {
@@ -176,25 +196,6 @@ void RC_Controller::ISR_THROTTLE_FALL() {
   }
 }
 
-// void RC_Controller::ISR_DRIVEMODE_RISE() {
-//   if (digitalRead(DRIVE_MODE_CH4_PIN) == HIGH) {
-//     noInterrupts();
-//     riseTime[RC_CH4_DRIVEMODE] = micros();
-//     RC_RISE[RC_CH4_DRIVEMODE] = riseTime[RC_CH4_DRIVEMODE];
-//     attachInterrupt(digitalPinToInterrupt(DRIVE_MODE_CH4_PIN), ISR_DRIVEMODE_FALL, FALLING);
-//     interrupts();
-//   }
-// }
-
-// void RC_Controller::ISR_DRIVEMODE_FALL() {
-//   if (digitalRead(DRIVE_MODE_CH4_PIN) == LOW) {
-//     noInterrupts();
-//     elapsedTime[RC_CH4_DRIVEMODE] = micros() - RC_RISE[RC_CH4_DRIVEMODE];
-//     RC_ELAPSED[RC_CH4_DRIVEMODE] = elapsedTime[RC_CH4_DRIVEMODE];
-//     attachInterrupt(digitalPinToInterrupt(DRIVE_MODE_CH4_PIN), ISR_DRIVEMODE_RISE, RISING);
-//     interrupts();
-//   }
-// }
 
 void RC_Controller::ISR_ESTOP_CHANGE() {
   static unsigned long estopRise = 0;

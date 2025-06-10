@@ -8,7 +8,6 @@
 #include "Can_Protocol.h"
 #include <stdio.h>
 #include "Settings.h"
-#include "DriveMode.h" // ADDED: Required for DriveMode type
 
 #include <Arduino.h>
 #include "DBW_Pins.h"
@@ -39,12 +38,13 @@ mcp2515_can CAN(CAN_SS_PIN);  // pin for CS on Mega
 volatile int16_t Vehicle::desired_speed_mmPs;
 volatile int16_t Vehicle::desired_brake;
 volatile int16_t Vehicle::desired_angle;
-// Changed: eStopActive is now a member of Vehicle, so remove global declaration.
-// bool eStopActive = false; // REMOVED: This is now a member of Vehicle.
+bool eStopActive = false;
+static bool estopState = false;
+static unsigned long lastPulseTime = 0;
 
 /****************************************************************************
-    Constructor
-****************************************************************************/
+   Constructor
+ ****************************************************************************/
 Vehicle::Vehicle() {
   
   Serial.println("Vehicle constructor starting...");
@@ -61,31 +61,27 @@ Vehicle::Vehicle() {
   desired_speed_mmPs = 0;
   desired_brake = 0;
   desired_angle = 0;
-  // ADDED: Initialize new member variables
-  currentDriveMode = NEUTRAL_MODE; // Default initialization
-  eStopActive = false;             // Default initialization
-  // END ADDED
-
+  currentDriveMode = 0;
 // #if DBWversion < 4
-//    // Keep trying to initialize CAN
-//    while (0) { // changed to false For testing purposes CAN.begin(CAN_500KBPS) ReEnable for DBWV4
-//      if (DEBUG) {
-//        Serial.println("CAN BUS Shield init fail");
-//      }
-//      delay(1000);
-//    }
-//    if (DEBUG)
-//      Serial.println("CAN BUS init ok!");
+//   // Keep trying to initialize CAN
+//   while (0) { // changed to false For testing purposes CAN.begin(CAN_500KBPS) ReEnable for DBWV4
+//     if (DEBUG) {
+//       Serial.println("CAN BUS Shield init fail");
+//     }
+//     delay(1000);
+//   }
+//   if (DEBUG)
+//     Serial.println("CAN BUS init ok!");
 
-// #else   // Due
-//    if (!Can0.begin(CAN_BPS_500K))   // initalize CAN with 500kbps baud rate
-//    {
-//      Serial.println("Can0 init success");
-//    } else {
-//      Serial.println("Can0 init failed");
-//    }
+// #else  // Due
+//   if (!Can0.begin(CAN_BPS_500K))  // initalize CAN with 500kbps baud rate
+//   {
+//     Serial.println("Can0 init success");
+//   } else {
+//     Serial.println("Can0 init failed");
+//   }
 
-// #endif   // DBWversion
+// #endif  // DBWversion
   //attachPCINT(digitalPinToPCINT(IRPT_ESTOP_PIN), eStop, RISING);
   //attachPCINT(digitalPinToPCINT(IRPT_CAN_PIN), recieveCan, RISING);
 
@@ -94,18 +90,19 @@ Vehicle::Vehicle() {
 }
 
 /*****************************************************************************
-    Destructor
-****************************************************************************/
+   Destructor
+ ****************************************************************************/
 Vehicle::~Vehicle() {
 }
 /*******************************
 Initilze SD Card
 ******************/ 
 
-void Vehicle::initalize(){
+void Vehicle::initalize() {
   Serial.println("initialize() starting");
-  bool parse=false;
-  bool config=false;
+
+  // ---------- Configure RTC with __DATE__ and __TIME__ ----------
+  bool parse = false, config = false;
 
   if (getDate(__DATE__) && getTime(__TIME__)) {
     parse = true;
@@ -123,7 +120,7 @@ void Vehicle::initalize(){
     Serial.println("DS1307 Communication Error :-{");
     Serial.println("Please check your circuitry");
   } else {
-    Serial.print("Could not parse info from the compiler, Time=\"");
+    Serial.print("Could not parse compiler time, Time=\"");
     Serial.print(__TIME__);
     Serial.print("\", Date=\"");
     Serial.print(__DATE__);
@@ -132,18 +129,13 @@ void Vehicle::initalize(){
 
   if (RTC.read(tm)) {
     Serial.print("Ok, Time = ");
-    print2digits(tm.Hour);
-    Serial.write(':');
-    print2digits(tm.Minute);
-    Serial.write(':');
+    print2digits(tm.Hour); Serial.print(':');
+    print2digits(tm.Minute); Serial.print(':');
     print2digits(tm.Second);
     Serial.print(", Date (D/M/Y) = ");
-    Serial.print(tm.Day);
-    Serial.write('/');
-    Serial.print(tm.Month);
-    Serial.write('/');
-    Serial.print(tmYearToCalendar(tm.Year));
-    Serial.println();
+    Serial.print(tm.Day); Serial.print('/');
+    Serial.print(tm.Month); Serial.print('/');
+    Serial.println(tmYearToCalendar(tm.Year));
   } else {
     if (RTC.chipPresent()) {
       Serial.println("The DS1307 is stopped. Please run SetTime.");
@@ -152,54 +144,47 @@ void Vehicle::initalize(){
     }
   }
 
-
+  // Initialize SD Card
   Serial.print("Initializing SD card...");
+  pinMode(chipSelect, OUTPUT);
 
-  pinMode(53, OUTPUT);
-
-  if (!SD.begin(53)) {
+  if (!SD.begin(chipSelect)) {
     Serial.println("Card failed, or not present");
-    logfile = File(); // make logfile invalid
+    logfile = File();  // mark logfile as invalid
     return;
   }
   Serial.println("Card initialized.");
 
-  // Setup log file
-  char filename[] = "MM_DD_00.CSV";
-
-  filename[0] = '0';
-  filename[1] = '1';
-  filename[3] = '0';
-  filename[4] = '1';
-
-  int i = 1;
-  do {
-    filename[6] = i / 10 + '0';
-    filename[7] = i % 10 + '0';
-    i++;
-  } while (SD.exists(filename) && (i < 100));
+  //Generate Unique Filename
+  char filename[13];
+  for (int i = 0; i < 100; i++) {
+    sprintf(filename, "LOG%02d.CSV", i);
+    if (!SD.exists(filename)) {
+      break;
+    }
+  }
 
   logfile = SD.open(filename, FILE_WRITE);
-
   if (!logfile) {
+    Serial.print("FAILED to open file: ");
+    Serial.println(filename);
     error("file unable to open!");
+    return;
   }
 
   Serial.print("Logging to: ");
   Serial.println(filename);
 
-  // --- MODIFIED: Added new column headers ---
-  logfile.println("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal,steeringAngleRight,actual_throttle_pwm,drive_mode,steering_mode,estop_active");
-  // --- END MODIFIED ---
-  logfile.flush();
-
+  //Write CSV Header 
+  logfile.println("time_ms,desired_speed_ms,desired_brake,desired_angle,current_speed,current_brake,current_angle,throttle_pulse,steerpulse,brakeHold,steeringVal,steeringAngleRight,driveMode");
   Serial.println("initialize() finished");
 }
 
 
+
 /*****************************************************************************
-    Struct for sending current speed and angle to high-level board through CAN
-****************************************************************************/
+   Struct for sending current speed and angle to high-level board through CAN
+ ****************************************************************************/
 typedef union {
   struct {
     uint16_t sspeed;
@@ -210,15 +195,17 @@ typedef union {
 } speedAngleMessage;
 
 /*******************************************************************************************************
-    Checks for receipt of new CAN message and updates current
-    Vehicle speed and steering angle by passing code received from CAN
-    from RC or high-level board to the throttle and steering controllers
-*******************************************************************************************************/
+   Checks for receipt of new CAN message and updates current
+   Vehicle speed and steering angle by passing code received from CAN
+   from RC or high-level board to the throttle and steering controllers
+ *******************************************************************************************************/
 void Vehicle::update() {
-  //recieveCan();   //check for new message
+  //recieveCan();  //check for new message
   int16_t tempDspeed;
   int16_t tempDbrake;
   int16_t tempDangle;
+
+  brake->Update();
 
   noInterrupts();
   tempDspeed = desired_speed_mmPs;
@@ -234,16 +221,12 @@ void Vehicle::update() {
   Serial.print("Input Speed: "); Serial.println(tempDspeed);
   Serial.print("Input Brake: "); Serial.println(tempDbrake);
   Serial.print("Input Angle: "); Serial.println(tempDangle);
-  real_System(tempDspeed, tempDbrake, tempDangle);   //real system when using bike, not test
-
-  // --- MODIFIED: Call LogSD() here ---
-  LogSD();
-  // --- END MODIFIED ---
+  real_System(tempDspeed, tempDbrake, tempDangle);  //real system when using bike, not test
 
   //*******************************************************************************************
 
   //If speed not less than zero, send current speed and angle to high-level for processing
-  if (currentSpeed < 0)   //stopped
+  if (currentSpeed < 0)  //stopped
     return;
 
   //build struct to send data to Highlevel through CAN
@@ -253,6 +236,7 @@ void Vehicle::update() {
   MSG.angle = currentAngle;
   MSG.reserved = 0;
 
+  // unknown status (120 - 145)
  #if DBWversion < 4
   CAN.MCP_CAN::sendMsgBuf(Actual_CANID, 0, 0, 8, (uint8_t*)&MSG);
 
@@ -263,7 +247,7 @@ void Vehicle::update() {
       Serial.println("Message Failed");
     }
   }
-// #else   // Due
+// #else  // Due
 //   outgoing.data.int16[0] = MSG.sspeed;
 //   outgoing.data.int16[1] = MSG.brake;
 //   outgoing.data.int16[2] = MSG.angle;
@@ -271,138 +255,225 @@ void Vehicle::update() {
 //   Can0.sendFrame(outgoing);
 
   if (DEBUG) {
-    // Original code had a Can0.sendFrame(outgoing) call here within an #if DBWversion < 4 block.
-    // This is syntactically incorrect for DBWversion < 4 (Mega).
-    // I'm commenting it out as it's not part of the requested logging changes and
-    // would likely cause a compilation error.
-    // if (Can0.sendFrame(outgoing)) {
-    //   Serial.println("Sending Message to DUE");
-    // } else {
-    //   Serial.println("Message Failed");
-    // }
+    if (Can0.sendFrame(outgoing)) {
+      Serial.println("Sending Message to DUE");
+    } else {
+      Serial.println("Message Failed");
+    }
   }
-#endif // DBWversion
+#endif DBWversion
   // Update every second
   delay(1000);
 }
 
 /********************************************************************************************************
-    Actual system for executing results with bike
-*******************************************************************************************************/
+   Actual system for executing results with bike
+ *******************************************************************************************************/
 void Vehicle::real_System(int16_t tempDspeed, int16_t tempDbrake, int16_t tempDangle) {
   DriveMode mode = RC->getDriveMode();  // Get current mode from RC controller
+  currentDriveMode = static_cast<int>(mode);
 
   currentSpeed = throttle->update(tempDspeed, mode);   // <- use '->'
   currentBrake = tempDbrake;
   currentAngle = steer->update(tempDangle);      // <- use '->'
 
-  // ADDED: Store drive mode for logging
-  currentDriveMode = mode;
-  // END ADDED
-
   Serial.println("-----------------------------------------");
   Serial.println("Drive Mode: " + String(
     mode == REVERSE_MODE ? "REVERSE" :
     mode == NEUTRAL_MODE ? "NEUTRAL" :
-    "DRIVE"
+                      "DRIVE"
   ));
   Serial.println("Actual Speed: " + String(currentSpeed));
   Serial.println("Actual Brake: " + String(currentBrake));
   Serial.println("Actual Angle: " + String(currentAngle));
 }
 
-// --- Existing hard_Coded_Test and recieveCan functions ... (no changes here) ---
+/********************************************************************************************************
+   Hard coded to give back feedback to high level as if
+   the lowlevel had responded to the speed and angle requested by Highlevel board
+ *******************************************************************************************************/
+// void Vehicle::hard_Coded_Test(int16_t tempDspeed, int16_t tempDbrake, int16_t tempDangle) {
+//   currentSpeed = tempDspeed;
+//   currentBrake = tempDbrake;
+//   currentAngle = tempDangle;
+// }
+
+/*************************************************************************************
+   Checks for receipt of a message from CAN bus for new
+   speed/angle/brake instructions from RC or high-level board
+ ************************************************************************************/
+// void Vehicle::recieveCan() {  //need to ADD ALL the other CAN IDs possible (RC instructions etc. 4-23-19)
+//   noInterrupts();
+//   unsigned char len = 0;
+//   unsigned char buf[8];
+//   unsigned int canId = 0;
+
+// #if DBWversion < 4                           // CAN message receipt, if system is using Arduino Mega
+//   if (CAN_MSGAVAIL == CAN.checkReceive()) {  //found new instructions
+//     CAN.readMsgBuf(&len, buf);               // read data,  len: data length, buf: data buf
+//     canId = CAN.getCanId();
+//     interrupts();
+
+//     if (canId == HiDrive_CANID) {  // the drive ID receive from high level
+//       if (DEBUG) {
+//         Serial.println("RECEIVED CAN MESSAGE FROM HIGH LEVEL WITH ID: " + String(canId, HEX));
+//       }
+
+//       // SPEED IN mm/s
+//       uint16_t low_result = (buf[1] << 8) | buf[0];
+//       desired_speed_mmPs = (int16_t)low_result;
+
+//       // BRAKE ON/OFF
+//       uint16_t mid_result = (buf[3] << 8) | buf[2];
+//       desired_brake = (int16_t)mid_result;
+
+//       if (desired_brake > 0 && brakeHold == 0) {  // Activate Brakes
+//         eStop();
+//       } else if (desired_brake > 0 && brakeHold == 1) {  // Hold Brakes
+//         brake.Update();
+//       } else {
+//         brake.Release();  // Release Brakes
+//         brakeHold = 0;
+//       }
+
+//       // WHEEL ANGLE
+//       uint16_t high_result = (buf[5] << 8) | buf[4];
+//       desired_angle = (int16_t)high_result;
+
+//       if (DEBUG) {
+//         Serial.print("CAN Speed: " + String(desired_speed_mmPs, DEC));
+//         Serial.print(", CAN Brake: " + String(mid_result, DEC));
+//         Serial.print(",  CAN Angle: ");
+//         Serial.println(desired_angle, DEC);
+//       }
+
+//     } else if (canId == HiStatus_CANID) {  //High-level Status change (just e-stop for now 4/23/19)
+//       desired_speed_mmPs = 0;
+//       eStop();
+//     }
+//   }
+
+// #else  // else CAN message receipt for system using Arduino Due
+//   Can0.watchForRange(Actual_CANID, HiStatus_CANID);  //filter for high level communication
+//   while (Can0.available() > 0) {                     // check if CAN message available
+//     Can0.read(incoming);                             // reading data from CAN message
+//     canId = incoming.id;
+//   }
+//   interrupts();
+//   if (canId == HiDrive_CANID) {  // the drive ID receive from high level
+//     if (DEBUG) {
+//       Serial.println("RECEIVED CAN MESSAGE FROM HIGH LEVEL WITH ID: " + String(canId, HEX));
+//     }
+
+//     // SPEED IN mm/s
+//     int16_t low_result = incoming.data.int16[0];
+//     desired_speed_mmPs = low_result;
+
+
+//     // BRAKE ON/OFF
+//     int16_t mid_result = incoming.data.int16[1];
+//     desired_brake = mid_result;
+//     if (desired_brake > 0 && brakeHold == 0) {  // Activate Brakes
+//       eStop();
+//     } else if (desired_brake > 0 && brakeHold == 1) {  // Hold Brakes
+//       brake.Update();
+//     } else {  // Release Brakes
+//       brake.Release();
+//       brakeHold = 0;
+//     }
+
+//     // WHEEL ANGLE
+//     int16_t high_result = incoming.data.int16[2];
+//     desired_angle = high_result;
+
+//     if (DEBUG) {
+//       Serial.print("CAN Speed: " + String(low_result, DEC));
+//       Serial.print(", CAN Brake: " + String(mid_result, DEC));
+//       Serial.print(",  CAN Angle: ");
+//       Serial.println(high_result, DEC);
+//       Serial.println("mapped angle: " + String(desired_angle));
+//     }
+//   } else if (canId == HiStatus_CANID) {  //High-level Status change (just e-stop for now 4/23/19)
+//     desired_speed_mmPs = 0;
+//     eStop();
+//   }
+
+// #endif
+// }
 
 //Estop method for high or RC calls
 void Vehicle::eStop() {
   if (DEBUG)
     Serial.println("E-Stop!");
-  //noInterrupts();
-  brake->Stop();       // <- use '->'
+  if(brakeHold == 0) {
+    brake->Stop();
+    brakeHold = 1;
+  }  
   throttle->stop();   // <- use '->'
-  brakeHold = 1;
-  //interrupts();
+
+}
+void Vehicle::applyEStop() {
+  eStop(); // engages brakes + stops throttle
+  //brake->Update();
+  throttle->stop(); // ensure DAC is zero
+  desired_speed_mmPs = 0;
+  desired_brake = 100;
+}
+
+void Vehicle::handleThrottleAndBrake() {
+  throttlePulse_ms = RC->getMappedValue(RC_CH2_THROTTLE_BR);
+  DriveMode mode = RC->getDriveMode();
+
+  if (throttlePulse_ms == -1) {
+    applyEStop();
+  } else {
+    brakeHold = 0;
+    brake->Release();
+
+    throttle->update(throttlePulse_ms, mode);
+    desired_speed_mmPs = throttlePulse_ms;
+    desired_brake = 0;
+  }
+}
+
+void Vehicle::handleSteering() {
+  steerPulse_ms = RC->getMappedValue(RC_CH1_STEERING);
+  desired_angle = steerPulse_ms;
 }
 
 void Vehicle::updateRC() {
   RC->mapValues();
-  RC->update(); //updates drive mode
-  DriveMode mode = RC->getDriveMode();
-  throttlePulse_ms = RC->getMappedValue(RC_CH2_THROTTLE_BR);
-  steerPulse_ms = RC->getMappedValue(RC_CH1_STEERING);
+  RC->updateDriveSelection(); //updates drive mode
 
-  static int32_t prevPWM = 0;
-
-  static bool estopState = false;
-  static unsigned long lastPulseTime = 0;
-
-  if (RC_Controller::estopFlagChanged) {
-    RC_Controller::estopFlagChanged = false;
-
-    Serial.print("E-STOP Pulse: ");
-    Serial.println(RC_Controller::estopPulseWidth);
-
-    unsigned long now = millis();
-    if (now - lastPulseTime > 100) {   // simple debounce
-      lastPulseTime = now;
-
-      // Directly set state based on pulse width
-      if (RC_Controller::estopPulseWidth > 1800) {
-        estopState = true;
-        Serial.println(">>> E-STOP ON <<<");
-      } else if (RC_Controller::estopPulseWidth < 1200) {
-        estopState = false;
-        Serial.println(">>> E-STOP OFF <<<");
-      }
-    }
-  }
-
-  // ADDED: Update eStopActive member variable for logging
-  eStopActive = estopState;
-  // END ADDED
-
-  if (estopState) {
-    eStop(); // engages brakes + stops throttle
-    throttle->stop(); // <-- make sure throttle is set to 0 volts
-    desired_speed_mmPs = 0;
-    desired_brake = 100;
+  if (RC->processEStop()) {
+    applyEStop();
     RC->clearFlag();
     return;
   }
 
-    if (throttlePulse_ms == -1) {
-      eStop();
-
-      desired_speed_mmPs = 0;
-      desired_brake = 100;
-    } else {
-      brakeHold = 0;
-      brake->Release();
-
-
-      throttle->update(throttlePulse_ms, mode);
-      desired_speed_mmPs = throttlePulse_ms;
-      desired_brake = 0;
-    }
-
-    desired_angle = steerPulse_ms;
-    RC->clearFlag();
+  handleThrottleAndBrake();
+  handleSteering();
+  RC->clearFlag();
 }
 
 void Vehicle::LogMonitor() {
-  Serial.print(desired_speed_mmPs);   Serial.print(", ");
-  Serial.print(desired_brake);   Serial.print(", ");
-  Serial.print(desired_angle);   Serial.print(", ");
-  Serial.print(currentSpeed);   Serial.print(", ");
-  Serial.print(currentBrake);   Serial.print(", ");
-  Serial.print(currentAngle);   Serial.print(", ");
+  Serial.print(desired_speed_mmPs);  Serial.print(", ");
+  Serial.print(desired_brake);  Serial.print(", ");
+  Serial.print(desired_angle);  Serial.print(", ");
+  Serial.print(currentSpeed);  Serial.print(", ");
+  Serial.print(currentBrake);  Serial.print(", ");
+  Serial.print(currentAngle);  Serial.print(", ");
   Serial.println(brakeHold); // Serial.print(", ");
-  Serial.print(throttlePulse_ms);   Serial.print(", ");
-  Serial.print(steerPulse_ms);   
+ Serial.print(throttlePulse_ms);  Serial.print(", ");
+  Serial.print(steerPulse_ms);  
 }
 
 void Vehicle::LogSD(){
-  // Log data to the file
+ // Log data to the file
+ if (!logfile) {
+  Serial.println("ERROR: Log file not open!");
+  return;
+}
   logfile.print(millis());
   logfile.print(",");
   logfile.print(desired_speed_mmPs);
@@ -425,23 +496,12 @@ void Vehicle::LogSD(){
   logfile.print(",");
   logfile.print(steeringVal);
   logfile.print(",");
-  logfile.println(currentRightAngle);
-  // --- ADDED: New data points ---
+  logfile.print(currentRightAngle);
   logfile.print(",");
-  // NOTE: You'll need to ensure ThrottleController has a public getCurrentThrottlePWM() method
-  // and SteeringController has a public getSteeringMode() method.
-  // I'm assuming those methods exist for compilation based on previous discussions.
-  logfile.print(throttle->getCurrentThrottlePWM());
-  logfile.print(",");
-  logfile.print(currentDriveMode); // Log the integer value of the DriveMode enum
-  logfile.print(",");
-  logfile.print(steer->getSteeringMode());
-  logfile.print(",");
-  logfile.println(eStopActive ? 1 : 0); // Log eStopActive as 1 (true) or 0 (false)
-  // --- END ADDED ---
+  logfile.print(currentDriveMode);
+  logfile.println(); 
   logfile.flush();   // Flush the file to make sure data is written immediately
 }
-
 void Vehicle::error(char *str)
 {
   Serial.print("error: ");

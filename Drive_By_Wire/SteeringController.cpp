@@ -49,18 +49,14 @@ void SteeringController::SteeringPID(int32_t input) {
   }
 }
 
-#define NEUTRAL_INPUT_ANGLE 127
-#define INPUT_DEADZONE 10
-
 void SteeringController::engageSteering(int32_t input) {
-
-  Serial.println("INPUT: ");
-  Serial.println(input);
+  //For steeriong testing purpoes, we are using digital pins for the steering, 
+  //and we are not using the angle sensors either.
   if (input > 120 && input < 130 ) {
     digitalWrite(LEFT_TURN_PIN, LOW);
     digitalWrite(RIGHT_TURN_PIN, LOW);
     steeringMode = 0;
-    Serial.println("Neutral");
+    Serial.println("Neutral Steering");
   } else if (input > 130 && input < 280) {
     digitalWrite(LEFT_TURN_PIN, HIGH);  // Turn left
     digitalWrite(RIGHT_TURN_PIN, LOW);

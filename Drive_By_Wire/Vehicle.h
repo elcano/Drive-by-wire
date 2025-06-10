@@ -7,11 +7,10 @@
 #include <TimeLib.h> 
 #include <SD.h>
 #include <stdio.h>
-#include "DriveMode.h" // ADDED: Required for DriveMode type
 
 #if DBWversion >= 4
 // Only for Arduino Due
-#include <due_can.h>     // from due-can library
+#include <due_can.h>    // from due-can library
 #endif
 
 extern const char *monthName[12];
@@ -24,7 +23,6 @@ static RC_Controller* RC;
 static ThrottleController* throttle;
 static SteeringController* steer;
 static Brakes* brake;
-
 
 File logfile;
 
@@ -41,19 +39,13 @@ File logfile;
   int16_t currentBrake;
   int16_t currentAngle;
   int16_t currentRightAngle;
+  int currentDriveMode;
 
   int brakeHold; // Hold brakes with 12V 
   long throttlePulse_ms;
   long steerPulse_ms;
   int16_t steeringVal; // new val
-
-  // ADDED: New member variables for logging (just declarations)
-  DriveMode currentDriveMode;
-  bool eStopActive;
-  // END ADDED
-
-  //void recieveCan(); // This was commented out in your original code
-  void initalize(); 
+  //void recieveCan();
   void error(char *str);
   void print2digits(int number);
   bool getTime(const char *str);
@@ -61,7 +53,7 @@ File logfile;
 
 
 public:
-
+  void initalize(); 
   Vehicle();
   ~Vehicle();
   void update();
@@ -71,5 +63,8 @@ public:
   void real_System(int16_t, int16_t, int16_t);
   void LogSD();
   void LogMonitor(); 
+  void applyEStop();
+  void handleThrottleAndBrake();
+  void handleSteering();
   
 };

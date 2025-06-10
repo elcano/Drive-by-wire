@@ -32,7 +32,6 @@ private:
 
   unsigned long previousTime[RC_NUM_SIGNALS];
   long RC_VALUES_MAPPED[RC_NUM_SIGNALS];  
-  static int RC_vals[RC_NUM_SIGNALS];
 
   long prevSteering;
   long prevThrottleBrake;
@@ -42,6 +41,8 @@ private:
   int ch4PulseWidth = 1500;  // Store CH4 pulse width
   DriveMode driveMode = NEUTRAL_MODE;
 
+  unsigned long lastPulseTime = 0;
+  bool estopState = false;
 
 
 public:
@@ -52,23 +53,19 @@ public:
   void mapValues();
   void mapSteering();
   void mapThrottleBrake();
-  long getRawPulse(int channel);
   static void ISR_STEERING_RISE();
   static void ISR_STEERING_FALL();
   static void ISR_THROTTLE_RISE();
   static void ISR_THROTTLE_FALL();
-  static void ISR_DRIVEMODE_RISE();
-  static void ISR_DRIVEMODE_FALL();
-   
+
   static void ISR_ESTOP_CHANGE();
 
   static volatile bool estopFlagChanged;
   static volatile unsigned long estopPulseWidth;
 
-    void init();
-    void update();  // Add this to update signals
-    DriveMode getDriveMode() const;
-
-
+  void updateDriveSelection(); 
+  DriveMode getDriveMode() const;
+  bool processEStop();
+  bool isEStopActive() const;
   long getMappedValue(int channel);
 };
