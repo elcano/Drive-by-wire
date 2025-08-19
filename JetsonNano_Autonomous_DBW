@@ -1,0 +1,256 @@
+import math
+import time
+import struct
+import threading
+import tkinter as tk
+from pymavlink import mavutil
+from collections import deque
+import can
+
+# ---------- GPS + ATTITUDE ----------
+def setup_connection():
+    print("Connecting to Pixhawk on /dev/ttyACM0 at 57600 baud...")
+    connection = mavutil.mavlink_connection('/dev/ttyACM0', baud=57600)
+    print("Waiting for heartbeat...")
+    connection.wait_heartbeat()
+    print(" Heartbeat received. Pixhawk is connected.")
+    connection.mav.request_data_stream_send(
+        connection.target_system,
+        connection.target_component,
+        mavutil.mavlink.MAV_DATA_STREAM_ALL,
+        10, 1)
+    return connection
+
+def convert_lat_long(lat0, lon0, lat1, lon1):
+    R = 6371000  # Earth radius in meters
+    dx = R * math.radians(lon1 - lon0) * math.cos(math.radians(lat0))
+    dy = R * math.radians(lat1 - lat0)
+    return dx, dy
+
+def get_position_heading_speed(master, origin):
+    """
+    Returns (pos [x,y] in meters relative to origin, heading_deg, GPS_speed_mps)
+    or (None, None, None) when data not available.
+    """
+    attitude = master.recv_match(type='ATTITUDE', blocking=True, timeout=1)
+    gps = master.recv_match(type='GPS_RAW_INT', blocking=True, timeout=1)
+    vfr = master.recv_match(type='VFR_HUD', blocking=True, timeout=1)
+
+    if attitude and gps and getattr(gps, 'fix_type', 0) >= 2:
+        if hasattr(gps, 'lat') and hasattr(gps, 'lon'):
+            lat = gps.lat / 1e7
+            lon = gps.lon / 1e7
+            if lat != 0 and lon != 0:
+                x, y = convert_lat_long(origin[0], origin[1], lat, lon)
+                yaw_deg = math.degrees(attitude.yaw) % 360
+                gps_speed_mps = vfr.groundspeed if vfr else 0.0
+                return [x, y], yaw_deg, gps_speed_mps
+    return None, None, None
+
+# ---------- CAN COMMUNICATION ----------
+def send_can_command(bus, cmd_id, value):
+    try:
+        if cmd_id == 0x01:  # steering (signed)
+            data = [cmd_id] + list(struct.pack("b", int(value))) + [0x00]*6
+        else:  # throttle or brake (unsigned)
+            data = [cmd_id, int(value) & 0xFF] + [0x00]*6
+        msg = can.Message(arbitration_id=0x200, data=data, is_extended_id=False)
+        bus.send(msg)
+        print(f"[CAN] Sent: ID=0x{cmd_id:02X}, Value={value}")
+    except can.CanError as e:
+        print("[CAN] Send failed:", e)
+    except Exception as e:
+        print("[CAN] Unexpected error sending:", e)
+
+# ---------- CONTROL LOGIC ----------
+def compute_steering_angle(pos, heading_deg, target):
+    dx = target[0] - pos[0]
+    dy = target[1] - pos[1]
+    target_heading = math.degrees(math.atan2(dy, dx)) % 360
+    error = (target_heading - heading_deg + 180) % 360 - 180
+    steer = int(max(-30, min(30, error)))
+    return steer, error
+
+def compute_throttle_brake(distance, threshold=2.0):
+    if distance > threshold:
+        throttle = min(100, int(30 + distance * 4))
+        brake = 0
+    else:
+        throttle = 0
+        brake = int(100 * (1 - distance / threshold))
+    return throttle, brake
+
+# ---------- MAIN CONTROL LOOP ----------
+def control_loop(target_x, target_y, arrival_tol=0.5, heading_tol=5.0):
+    try:
+        master = setup_connection()
+    except Exception as e:
+        print("Failed to connect to Pixhawk:", e)
+        root.after(0, lambda: status_label.config(text="Error: cannot connect to Pixhawk"))
+        root.after(0, lambda: start_btn.config(state=tk.NORMAL))
+        return
+
+    try:
+        bus = can.interface.Bus(channel='can0', bustype='socketcan', bitrate=500000)
+    except Exception as e:
+        print("Failed to open CAN bus:", e)
+        root.after(0, lambda: status_label.config(text="Error: cannot open CAN bus"))
+        root.after(0, lambda: start_btn.config(state=tk.NORMAL))
+        return
+
+    origin_latlon = None
+    last_print_time = 0
+    print("Waiting for valid GPS fix...")
+
+    while origin_latlon is None:
+        gps_message = master.recv_match(type='GPS_RAW_INT', blocking=True, timeout=3)
+        if gps_message and getattr(gps_message, 'fix_type', 0) >= 2:
+            if hasattr(gps_message, 'lat') and hasattr(gps_message, 'lon'):
+                lat = gps_message.lat
+                lon = gps_message.lon
+                if lat != 0 and lon != 0:
+                    origin_latlon = [lat / 1e7, lon / 1e7]
+                    print(f" GPS fix acquired! Origin set to: {origin_latlon}")
+                    root.after(0, lambda: status_label.config(text=f"Origin set: {origin_latlon}"))
+                    break
+        current_time = time.time()
+        if current_time - last_print_time >= 30:
+            print("No valid GPS fix yet. Waiting...")
+            last_print_time = current_time
+
+    print("Starting autonomous control loop...")
+    pos_history = deque(maxlen=5)
+
+    arduino_speed_display = 0.0
+    last_arduino_speed_time = 0
+
+    try:
+        while True:
+            pos, heading, gps_speed_mps = get_position_heading_speed(master, origin_latlon)
+            if pos is None or heading is None:
+                time.sleep(0.2)
+                continue
+
+            pos_history.append(pos)
+            avg_x = sum(p[0] for p in pos_history) / len(pos_history)
+            avg_y = sum(p[1] for p in pos_history) / len(pos_history)
+            avg_pos = [avg_x, avg_y]
+
+            dist = math.hypot(target_x - avg_pos[0], target_y - avg_pos[1])
+            steer_cmd, heading_error = compute_steering_angle(avg_pos, heading, [target_x, target_y])
+            throttle, brake = compute_throttle_brake(dist, threshold=arrival_tol * 4)
+
+            send_can_command(bus, 0x01, steer_cmd)
+            send_can_command(bus, 0x02, throttle)
+            send_can_command(bus, 0x03, brake)
+
+            if abs(heading_error) <= heading_tol:
+                turn_text = f"On heading (±{heading_tol}°)"
+            else:
+                turn_text = f"Turn {'LEFT' if heading_error > 0 else 'RIGHT'} {abs(heading_error):.1f}°"
+
+            root.after(0, lambda p=avg_pos, h=heading, d=dist, s=steer_cmd:
+                       distance_label.config(text=f"Pos: {p[0]:.2f}, {p[1]:.2f} m  |  Heading: {h:.1f}°  |  Dist: {d:.2f} m  |  SteerCmd: {s}°"))
+            root.after(0, lambda t=turn_text: status_label.config(text=f"Steering: {t}"))
+
+            # --- Read Arduino speed from CAN (0x04) ---
+            try:
+                while True:
+                    msg = bus.recv(timeout=0.001)
+                    if msg is None:
+                        break
+                    if msg.arbitration_id == 0x04:  # Arduino speed in km/h
+                        arduino_speed_display = struct.unpack('<f', msg.data[0:4])[0]
+                        last_arduino_speed_time = time.time()
+            except Exception as e:
+                print("CAN read error:", e)
+
+            # Hold Arduino speed for 1 second
+            if time.time() - last_arduino_speed_time > 1.0:
+                display_arduino_speed = arduino_speed_display
+            else:
+                display_arduino_speed = arduino_speed_display
+
+            # --- Update GUI with both speeds ---
+            root.after(0, lambda gps_spd=gps_speed_mps, arduino_spd=display_arduino_speed:
+                       speed_label.config(text=f"GPS: {gps_spd*3.6:.2f} km/h  |  Ground: {arduino_spd:.2f} km/h"))
+
+            print(f"[CONTROL] Pos={avg_pos}, Heading={heading:.1f}°, Distance={dist:.2f}m, GPS_Speed={gps_speed_mps*3.6:.2f} km/h, Ground_Speed={display_arduino_speed:.2f} km/h, Error={heading_error:.1f}°, Steer={steer_cmd}")
+
+            if dist < arrival_tol:
+                print("Reached destination.")
+                root.after(0, lambda: arrival_label.config(text=f"Arrived at waypoint ({target_x:.2f}, {target_y:.2f})"))
+                root.after(0, lambda: status_label.config(text="Arrived — stopping commands"))
+                try:
+                    send_can_command(bus, 0x02, 0)
+                    send_can_command(bus, 0x03, 100)
+                except Exception:
+                    pass
+                break
+
+            time.sleep(0.2)
+
+    except Exception as e:
+        print("Control loop error:", e)
+        root.after(0, lambda: status_label.config(text=f"Error: {e}"))
+
+    root.after(0, lambda: start_btn.config(state=tk.NORMAL))
+    print("Control loop ended.")
+
+# ---------- GUI ----------
+def start_autonomous_control():
+    try:
+        x = float(entry_x.get())
+        y = float(entry_y.get())
+        arrival_tol = float(entry_arrival_tol.get())
+        heading_tol = float(entry_heading_tol.get())
+    except ValueError:
+        print("Invalid input. Please enter numeric values.")
+        status_label.config(text="Invalid numeric input")
+        return
+    start_btn.config(state=tk.DISABLED)
+    arrival_label.config(text="")
+    status_label.config(text="Starting...")
+
+    thread = threading.Thread(target=control_loop, args=(x, y, arrival_tol, heading_tol), daemon=True)
+    thread.start()
+
+root = tk.Tk()
+root.title("Jetson Autonomous Vehicle Control")
+
+tk.Label(root, text="Target X (m):").grid(row=0, column=0, sticky="e")
+entry_x = tk.Entry(root)
+entry_x.grid(row=0, column=1)
+
+tk.Label(root, text="Target Y (m):").grid(row=1, column=0, sticky="e")
+entry_y = tk.Entry(root)
+entry_y.grid(row=1, column=1)
+
+tk.Label(root, text="Arrival tolerance (m):").grid(row=2, column=0, sticky="e")
+entry_arrival_tol = tk.Entry(root)
+entry_arrival_tol.insert(0, "0.5")
+entry_arrival_tol.grid(row=2, column=1)
+
+tk.Label(root, text="Heading tolerance (°):").grid(row=3, column=0, sticky="e")
+entry_heading_tol = tk.Entry(root)
+entry_heading_tol.insert(0, "5.0")
+entry_heading_tol.grid(row=3, column=1)
+
+start_btn = tk.Button(root, text="Start", command=start_autonomous_control)
+start_btn.grid(row=4, columnspan=2, pady=8)
+
+status_label = tk.Label(root, text="Status: Idle", anchor="w")
+status_label.grid(row=5, column=0, columnspan=2, sticky="we", padx=4)
+
+distance_label = tk.Label(root, text="Pos: --, -- m  |  Heading: --°  |  Dist: -- m", anchor="w")
+distance_label.grid(row=6, column=0, columnspan=2, sticky="we", padx=4)
+
+speed_label = tk.Label(root, text="Speed: -- km/h", anchor="w")
+speed_label.grid(row=7, column=0, columnspan=2, sticky="we", padx=4)
+
+arrival_label = tk.Label(root, text="", fg="green", anchor="w")
+arrival_label.grid(row=8, column=0, columnspan=2, sticky="we", padx=4, pady=(4,0))
+
+root.mainloop()
+
+
