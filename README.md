@@ -1,5 +1,7 @@
 # DriveByWire
 
+Obsolete. New code is in DBW version 5.
+
 This repository is for use with the **Drive by Wire** board created to be used for the ELCANO self-driving tricycle. In order for this module to run external libraries are required.
 
 Repositories were updated 6/8/2023 but clobbered previous history. Chief addition is use of an RC controller that allows manual control of throttle, brakes and steering.
